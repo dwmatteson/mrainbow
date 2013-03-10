@@ -1,0 +1,63 @@
+.content-area {
+	padding: 25px;
+	-moz-border-radius: 6px;
+	-webkit-border-radius: 6px;
+	border-radius: 6px;
+}
+
+.input-wide {
+	width: 94%;
+}
+
+.cell-mini {
+	width: 75px;
+}
+
+.cell-small {
+	width: 105px;
+}
+
+.minutes {
+	width: 94%;
+}
+
+.error-box {
+	background-color: #E74C3C;
+	color: #FFF;
+	-moz-border-radius: 6px;
+	-webkit-border-radius: 6px;
+	border-radius: 6px;
+
+	margin-bottom: 25px;
+	padding: 0 10px 0 10px;
+}
+
+.success-box {
+	background-color: #27AE60;
+	color: #FFF;
+	-moz-border-radius: 6px;
+	-webkit-border-radius: 6px;
+	border-radius: 6px;
+
+	margin-bottom: 25px;
+	padding: 0 10px 0 10px;
+}
+
+.error-box p, .success-box p {
+	margin-top: 5px;
+	font-size: 14px;
+}
+
+.rounded-corners {
+	-moz-border-radius: 6px;
+	-webkit-border-radius: 6px;
+	border-radius: 6px;
+}
+
+table {
+	color: #334;
+}
+
+#meeting-view h1, #meeting-view h2, #meeting-view h3, #meeting-view h4, #meeting-view strong, #meeting-view p, #meeting-view ul {
+	color: #334;
+}
