@@ -1,10 +1,11 @@
 
 var mr_api = (function () {
 	var	self = this,
-		api_address = '//localhost/api/';
+		api_address = '//meetingrainbow.com/api/';
 
 	self.userid = '';
 	self.token = '';
+	self.name = '';
 
 	self.action = function (fields, cb) {
 		console.log(JSON.stringify(fields));
@@ -29,6 +30,7 @@ var mr_api = (function () {
 			if(fields.action === 'login' && data.status === 'success') {
 				self.userid = data.id;
 				self.token = data.token;
+				self.name = data.name;
 			}
 
 			cb(data);

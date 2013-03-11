@@ -21,6 +21,10 @@
 	width: 94%;
 }
 
+.btn-top-spacing {
+	margin-top: 5px;
+}
+
 .error-box {
 	background-color: #E74C3C;
 	color: #FFF;

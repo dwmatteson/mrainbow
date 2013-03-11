@@ -46,7 +46,9 @@ var server = http.createServer(function (req, res) {
 			mr_api.addUser({
 				'email'		: query.email,
 				'password'	: query.password,
-				'name'		: query.name
+				'name'		: query.name,
+				'temppass'	: query.temppass,
+				'inviter'	: query.inviter
 			}, output);
 			return;
 	}
@@ -68,6 +70,11 @@ var server = http.createServer(function (req, res) {
 				'password' : query.password,
 				'name'	: query.name,
 				'token'	: query.token
+			}, output);
+			break;
+		case 'getmyprofile':
+			mr_api.getMyProfile({
+				'userid'	: query.userid
 			}, output);
 			break;
 		case 'getuser':
@@ -126,6 +133,12 @@ var server = http.createServer(function (req, res) {
 				'meetingid'	: query.meetingid,
 				'ownerid'	: query.ownerid,
 				'sortorder'	: query.sortorder
+			}, output);
+			break;
+		case 'deleteitem':
+			mr_api.deleteItem({
+				'userid'	: query.userid,
+				'id'		: query.id
 			}, output);
 			break;
 		case 'getitems':

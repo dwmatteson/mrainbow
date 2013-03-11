@@ -19,7 +19,7 @@
 					<div style="height:25px;width:25px;background-color:#9B59B6;border-radius:10px;position:relative;left:3px;top:3px;">
 					<div style="height:25px;width:25px;background-color:#FFF;border-radius:10px;position:relative;left:3px;top:3px;">
 					</div></div></div></div></div></div></div>
-					<span style="font-size:24px;font-weight:bold;margin-left:10px;">Meeting Rainbow</span>
+					<span style="font-size:24px;font-weight:bold;margin-left:10px;">Meeting Rainbow <span style="color:#E74C3C;font-size:16px;">Alpha</span></span>
 				</div>
 				<div class="navbar navbar-inverse">
 					<div class="navbar-inner">
@@ -31,10 +31,16 @@
 								<a href="#" id="menu-register-link">Register</a>
 							</li>
 							<li id="menu-item-3">
-								<a href="/about.html">About</a>
+								<a href="#" id="menu-review-link" style="display:none;">List</a>
 							</li>
 							<li id="menu-item-4">
-								<a href="#" id="menu-logout-link">Logout</a>
+								<a href="#" id="menu-create-link" style="display:none;">Create</a>
+							</li>
+							<li id="menu-item-5">
+								<a href="#" id="menu-profile-link" style="display:none;">Profile</a>
+							</li>
+							<li id="menu-item-6">
+								<a href="#" id="menu-logout-link" style="display:none;">Logout</a>
 							</li>
 							<li id="menu-item-5"></li>
 						</ul>
@@ -129,6 +135,40 @@
 						</table>
 					</div>
 
+					<div class="span8 offset2" id="profile-form" style="display:none;">
+						<div class="form-horizontal">
+							<div class="control-group">
+								<label class="control-label" for="profile-name">Name</label>
+								<div class="controls">
+									<input type="text" class="input-large" value id="profile-name">
+								</div>
+							</div>
+							<div class="control-group">
+								<label class="control-label" for="profile-email">Email</label>
+								<div class="controls">
+									<input type="text" class="input-large" value id="profile-email">
+								</div>
+							</div>
+							<div class="control-group">
+								<label class="control-label" for="profile-name">New Password</label>
+								<div class="controls">
+									<input type="password" class="input-large" value id="profile-password">
+								</div>
+							</div>
+							<div class="control-group">
+								<label class="control-label" for="profile-name">Confirm New Password</label>
+								<div class="controls">
+									<input type="text" class="input-large" value id="profile-confirm">
+								</div>
+							</div>
+							<div class="control-group">
+								<div class="controls">
+									<button class="btn btn-primary btn-large" id="profile-button">Update</button>
+								</div>
+							</div>
+						</div>
+					</div>
+
 					<div class="span8 offset2" id="meeting-form" style="display:none;">
 						<div class="form-horizontal">
 							<div class="control-group">
@@ -171,6 +211,7 @@
 									<input type="text" class="input-small" value placeholder="Minutes" id="meeting-duration">
 								</div>
 							</div>
+							<!--
 							<div class="control-group">
 								<div class="controls">
 									<label class="checkbox" id="meeting-public-label" for="meeting-public">
@@ -181,6 +222,7 @@
 									</label>
 								</div>
 							</div>
+							-->
 							<div class="control-group">
 								<div class="controls">
 									<button class="btn btn-primary btn-large" id="meeting-button">Schedule</button>

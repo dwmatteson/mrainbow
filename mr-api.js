@@ -22,7 +22,8 @@ exports.create = function (config) {
 		'host'		: config.mysql_server,
 		'user'		: config.mysql_username,
 		'password'	: config.mysql_password,
-		'database'	: config.mysql_database
+		'database'	: config.mysql_database,
+		'multipleStatements' : true
 	});
 
 	db.connect(function (err) {
@@ -41,6 +42,15 @@ exports.create = function (config) {
 			return txt;
 		}.bind(this));
 	};
+
+	var nodemailer = require('nodemailer');
+
+	var smtpTransport = nodemailer.createTransport('SMTP', {
+		'service'	: 'Gmail',
+		'auth'		: { 'user': 'mtgrainbow@gmail.com', 'pass': 'coldheartofstone' }
+	});
+
+	var mail_from = 'Meeting Rainbow Support <mtgrainbow@gmail.com>';
 
 	//// UTILITY FUNCTIONS
 	var errorMessage = function (message) {
@@ -255,7 +265,7 @@ exports.create = function (config) {
 			'email' : fields.email
 		};
 
-		var query = db.query('SELECT id, password FROM users WHERE email = :email', post, function (err, result) {
+		var query = db.query('SELECT id, password, name FROM users WHERE email = :email', post, function (err, result) {
 			var message = 'No message?';
 
 			if(err) {
@@ -263,12 +273,13 @@ exports.create = function (config) {
 				console.log('MySQL error encountered. Code = '+err.code+'\nmessage = '+message+'\npost = '+JSON.stringify(post)+'\n');
 			}
 			else {
-				if(result[0].password === fields.password) {
+				if(result[0] && result[0].password === fields.password) {
 					var token = createToken(result[0].id);
 
 					message = successMessage({
 						'id' : result[0].id,
 						'email' : post.email,
+						'name'	: result[0].name,
 						'token' : token
 					});
 				}
@@ -315,6 +326,25 @@ exports.create = function (config) {
 					'name'	: fields.name,
 					'startdate' : startdate
 				});
+
+				if(fields.temppass) {
+					var mailOptions = {
+						'from'	: mail_from,
+						'to'	: fields.email,
+						'subject': 'Welcome to Meeting Rainbow!'
+					};
+
+					mailOptions.text = "Hey there,\n\n"+fields.inviter+" just invited you to a meeting on our site. I made you an account with a temporary password, which can be found below. You can log in at meetingrainbow.com, change your password, and check out the meeting agenda.\n\nTemporary Password: "+fields.temppass+" (Please change)\n\nIf you have no interest, I'm sorry that you were bothered with this email. Please delete it and know you'll never get another.\n\nDave";
+
+					smtpTransport.sendMail(mailOptions, function (error, response) {
+						if(error) {
+							console.log(error);
+						}
+						else {
+							console.log("Message sent: "+response.message);
+						}
+					});
+				}
 			}
 
 			output(message);
@@ -354,7 +384,7 @@ exports.create = function (config) {
 			}
 			console.log('post = '+JSON.stringify(post)+'\n');
 
-			var query = db.query('UPDATE USERS SET email = :email, password = :password, name = :name WHERE id = :id', post, function (err, result) {
+			var query = db.query('UPDATE users SET email = :email, password = :password, name = :name WHERE id = :id', post, function (err, result) {
 				var message = 'No Message?';
 
 				if(err) {
@@ -372,6 +402,36 @@ exports.create = function (config) {
 
 				output(message);
 			});
+		});
+	};
+
+	self.getMyProfile = function (fields, output) {
+		var missings = checkRequired([ 'userid' ], fields);
+		var message = '';
+		if(missings) {
+			var message = errorMessage(missings);
+			output(message);
+			return false;
+		}
+
+		var post = { 'userid' : fields.userid };
+
+		var query = db.query('SELECT name, email, startdate FROM users WHERE id = :userid', post, function (err, result) {
+			if(err) {
+				message = mysqlError(err);
+				console.log('MySQL error encountered on SELECT. Code = '+err.code+'\nmessage = '+message+'\npost = '+JSON.stringify(post)+'\n');
+			}
+			else {
+				var data = result[0];
+
+				message = successMessage({
+					'email'	: data.email,
+					'name'	: data.name,
+					'startdate' : data.startdate
+				});
+			}
+
+			output(message);
 		});
 	};
 
@@ -557,21 +617,36 @@ exports.create = function (config) {
 			'startdate'	: fields.startdate
 		};
 
-		var querystring = 'SELECT meetings.* FROM meetings, attendees WHERE meetings.id = attendees.meetingid AND (meetings.userid = :userid OR (meetings.userid != :userid AND attendees.attendeeid = :userid))';
+		var querystring = 'SELECT meetings.* FROM meetings, attendees WHERE meetings.id = attendees.meetingid AND meetings.userid != :userid AND attendees.attendeeid = :userid ; SELECT meetings.* FROM meetings WHERE meetings.userid = :userid';
 		if(post.id) {
-			querystring = querystring + ' AND meetings.id = :id';
+			querystring = 'SELECT meetings.* FROM meetings WHERE meetings.id = :id';
 		}
 		else if(post.startdate) {
-			querystring = querystring + ' AND meetings.startdate = :startdate';
+			querystring =  'SELECT meetings.* FROM meetings WHERE meetings.startdate = :startdate';
 		}
 
-		var query = db.query(querystring, post, function (err, result) {
+		var query = db.query(querystring, post, function (err, results) {
 			if(err) {
 				message = mysqlError(err);
 				console.log('MySQL error encountered on UPDATE. err = '+JSON.stringify(err)+'\nmessage = '+message+'\npost = '+JSON.stringify(post)+'\n');
 			}
 			else {
-				var meetings = [];
+				var meetings = [], result = [];
+
+				if(results[0].id) {
+					result = results;
+				}
+				else {
+					for(var i in results) {
+						if(results[i] && results[i][0] && results[i][0].id) {
+							for(var j in results[i]) {
+								result.push(results[i][j]);
+							}
+						}
+					}
+				}
+
+				console.log('result = '+JSON.stringify(result)+' results = '+JSON.stringify(results));
 
 				for(var i in result) {
 					meetings.push(result[i]);
@@ -667,6 +742,39 @@ exports.create = function (config) {
 				}
 				else {
 					message = successMessage(post);
+				}
+
+				output(message);
+			});
+		});
+	};
+
+	self.deleteItem = function (fields, output) {
+		var missings = checkRequired([ 'userid', 'id' ], fields);
+		var message = '';
+
+		if(missings) {
+			message = errorMessage(missings);
+			output(message);
+			return false;
+		}
+
+		checkItemPermission(fields.id, fields.userid, function (permission, item) {
+			if(!permission) {
+				message = errorMessage('User is not authorized to delete items on this meeting.');
+				output(message);
+				return;
+			}
+
+			var post = { 'id' : fields.id };
+
+			var query = db.query('DELETE FROM items WHERE id = :id', post, function (err, result) {
+				if(err) {
+					message = mysqlError(err);
+					console.log('MySQL error encountered on DELETE. err = '+JSON.stringify(err)+'\nmessage = '+message+'\npost = '+JSON.stringify(post)+'\n');
+				}
+				else {
+					message = successMessage({ 'id' : post.id });
 				}
 
 				output(message);

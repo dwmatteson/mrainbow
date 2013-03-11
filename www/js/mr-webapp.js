@@ -4,9 +4,25 @@ var mr_webapp = (function () {
 		current_page = 'login-form';
 
 	var	USER_COOKIE = 'mr_u',
+		NAME_COOKIE = 'mr_n',
 		TOKEN_COOKIE = 'mr_t',
 		PAGE_COOKIE = 'mr_p',
 		LOAD_COOKIE = 'mr_l';
+
+	self.validEmail = function (email) {
+		var regex = /^([a-zA-Z0-9_\.\-\+])+\@(([a-zA-Z0-9\-])+\.)+([a-zA-Z0-9]{2,4})+$/;
+		return regex.test(email);
+	};
+
+	self.generatePassword = function () {
+		var	length = 8,
+			charset = "abcdefghijklnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+			retVal = "";
+		for (var i = 0, n = charset.length; i < length; ++i) {
+			retVal += charset.charAt(Math.floor(Math.random() * n));
+		}
+		return retVal;
+	};
 
 	self.toggleCheck = function (id) {
 		if($("#"+id).attr('checked')) {
@@ -47,6 +63,7 @@ var mr_webapp = (function () {
 	
 	self.showLoginForm = function () {
 		$.cookie(USER_COOKIE, '');
+		$.cookie(NAME_COOKIE, '');
 		$.cookie(TOKEN_COOKIE, '');
 		mr_api.userid = '';
 		mr_api.token = '';
@@ -67,7 +84,7 @@ var mr_webapp = (function () {
 			'frequency'	: $("#meeting-frequency").val(),
 			'manualdays'	: $("#meeting-manualdays").val(),
 			'duration'	: $("#meeting-duration").val(),
-			'public'	: $("#meeting-public").attr('checked') ? 1 : 0
+			'public'	: 1 
 		};
 
 		mr_api.action(fields, function (data) {
@@ -76,7 +93,36 @@ var mr_webapp = (function () {
 				showError('There was an error: '+data.message);
 			}
 			else {
+				mr_api.action({ 'action':'addattendee', 'attendeeid':mr_api.userid, 'meetingid':data.id }, function (data) {
+					if(data.status !== 'success') {
+						console.log('Error adding attendee id = '+mr_api.userid+' to meeting id = '+data.id);
+					}
+				});
 				showSuccess('Boom! Meeting added!');
+			}
+		});
+
+		return false;
+	};
+
+	self.updateMeeting = function (meetingid) {
+		var fields = {
+			'action'	: 'updatemeeting',
+			'id'		: meetingid,
+			'name'		: $("#meeting-name").val(),
+			'startdate'	: $("#meeting-startdate").val(),
+			'frequency'	: $("#meeting-frequency").val(),
+			'manualdays'	: $("#meeting-manualdays").val(),
+			'duration'	: $("#meeting-duration").val(),
+			'public'	: 1 
+		};
+
+		mr_api.action(fields, function (data) {
+			if(data.status === 'error') {
+				showError('There was an error: '+data.message);
+			}
+			else {
+				showSuccess('Your changes have been saved.');
 			}
 		});
 
@@ -85,8 +131,8 @@ var mr_webapp = (function () {
 
 	self.clearMeetingForm = function () {
 		$("[id^=meeting-]").val('');
-		$("#meeting-public").removeAttr('checked');
-		$("#meeting-public-label").removeClass('checked');
+		//$("#meeting-public").removeAttr('checked');
+		//$("#meeting-public-label").removeClass('checked');
 		$("#meeting-button").off('click');
 		$("#meeting-button").on('click', addMeeting);
 
@@ -103,18 +149,18 @@ var mr_webapp = (function () {
 			var meeting = data.meetings[0];
 
 			for(var key in meeting) {
-				if(key === 'public') { 
-					self.toggleCheck('meeting-public'); 
-				}
-				else if(key === 'startdate') {
+				//if(key === 'public') { 
+				//	self.toggleCheck('meeting-public'); 
+				//}
+				if(key === 'startdate') {
 					var d  = new Date(meeting[key]);
-					meeting[key] = d.getFullYear()+'-'+d.getMonth()+'-'+d.getDate()+' '+d.getHours()+':'+d.getMinutes();
+					meeting[key] = d.getFullYear()+'-'+(parseInt(d.getMonth())+1)+'-'+d.getDate()+' '+d.getHours()+':'+d.getMinutes();
 				}
 				$('#meeting-'+key).val(meeting[key]);
 			}
 
 			$("#meeting-button").off('click');
-			$("#meeting-button").on('click', self.updateMeeting);
+			$("#meeting-button").on('click', function () { self.updateMeeting(meetingid); });
 
 			$.cookie(LOAD_COOKIE, meetingid);
 
@@ -162,6 +208,21 @@ var mr_webapp = (function () {
 		});
 
 		return false;
+	};
+
+	self.deleteItem = function (meetingid, itemid) {
+		var fields = {
+			'action'	: 'deleteitem',
+			'id'		: itemid
+		};
+		mr_api.action(fields, function (data) {
+			if(data.status === 'success') {
+				viewMeeting(meetingid);
+			}
+			else {
+				showError('Error deleting item id = '+itemid+' message = '+data.message);
+			}
+		});
 	};
 
 	self.addItemMinutes = function (itemid, meetingid) {
@@ -225,7 +286,7 @@ var mr_webapp = (function () {
 				var contents = '';
 
 				for(var i in data.items) {
-					contents = contents + '<tr id="'+data.items[i].id+'-item-row"><td><input type="text" class="input-mini" id="'+data.items[i].id+'-sortorder" value="'+data.items[i].sortorder+'"></td><td id="'+data.items[i].id+'-name-cell"><input type="text" class="input-wide" id="'+data.items[i].id+'-name" value="'+data.items[i].name+'"></td><td id="'+data.items[i].id+'-owner-cell"><input type="text" class="input-small" id="'+data.items[i].id+'-ownername" data-ownerid="'+data.items[i].ownerid+'" value=""></td><td><button type="submit" class="btn btn-success" id="'+data.items[i].id+'-update-button">Update</button></td></tr>';
+					contents = contents + '<tr id="'+data.items[i].id+'-item-row"><td><input type="text" class="input-mini" id="'+data.items[i].id+'-sortorder" value="'+data.items[i].sortorder+'"></td><td id="'+data.items[i].id+'-name-cell"><input type="text" class="input-wide" id="'+data.items[i].id+'-name" value="'+data.items[i].name+'"></td><td id="'+data.items[i].id+'-owner-cell"><input type="text" class="input-small" id="'+data.items[i].id+'-ownername" data-ownerid="'+data.items[i].ownerid+'" value=""></td><td><button type="submit" class="btn btn-success" id="'+data.items[i].id+'-update-button">Update</button><button type="submit" class="btn btn-danger btn-top-spacing" id="'+data.items[i].id+'-delete-button">Delete</button></td></tr>';
 				}
 
 				$('#items-table').find('tbody').html(contents);
@@ -254,6 +315,7 @@ var mr_webapp = (function () {
 				self.viewMinutes(meetingid);
 
 				$("[id$=-update-button]").bind('click', function () { self.updateItem(meetingid, this.id.substr(0,36)); });
+				$("[id$=-delete-button]").bind('click', function () { self.deleteItem(meetingid, this.id.substr(0,36)); });
 			}
 			else {
 				showError('Unable to retrieve meeting items. :(');
@@ -262,17 +324,40 @@ var mr_webapp = (function () {
 		});
 	};
 
-	self.addAttendee = function (meetingid) {
-		self.getUser({ 'meetingid':meetingid, 'email':$('#attendee-email').val() }, function (fields) {
-			mr_api.action({ 'action':'addattendee', 'attendeeid':fields.id, 'meetingid':fields.meetingid }, function (data) {
-				if(data.status === 'success') {
-					viewMeeting(fields.meetingid);
-				}
-				else {
-					showError('There was an error adding the attendee.');
-					console.log('Error adding attendee for meeting id = '+fields.meetingid+' attendee id = '+fields.attendeeid+' message = '+data.message);
-				}
-			});
+	self.addAttendee = function (fields) {
+		mr_api.action({ 'action':'addattendee', 'attendeeid':fields.id, 'meetingid':fields.meetingid }, function (data) {
+			if(data.status === 'success') {
+				viewMeeting(fields.meetingid);
+			}
+			else {
+				showError('There was an error adding the attendee.');
+				console.log('Error adding attendee for meeting id = '+fields.meetingid+' attendee id = '+fields.attendeeid+' message = '+data.message);
+			}
+		});
+	};
+
+	self.findAttendee = function (meetingid) {
+		var email = $('#attendee-email').val();
+		if(!self.validEmail(email)) {
+			showError('Attendee email address does not appear to be valid.');
+		}
+
+		self.getUser({ 'meetingid':meetingid, 'email':email }, function (fields) {
+			if(fields.id === undefined) {
+				var	email_parts = email.split('@'),
+					temp_pass = self.generatePassword();
+				mr_api.action({ 'action': 'adduser', 'name': email_parts[0], 'email': email, 'password': temp_pass, 'temppass': temp_pass, 'inviter': mr_api.name }, function (data) {
+					if(data.status === 'success') {
+						self.addAttendee({ 'meetingid':meetingid, 'id':data.id });
+					}
+					else {
+						showError('There was an error registering and adding this attendee.');
+					}
+				});
+			}
+			else {
+				self.addAttendee({ 'meetingid':meetingid, 'id':fields.id });
+			}
 		});
 
 		return false;
@@ -283,6 +368,8 @@ var mr_webapp = (function () {
 		$('#item-sortorder').val('');
 		$('#item-name').val('');
 		$('#item-owner').val('');
+		$('#attendee-button').off('click');
+		$('#item-button').off('click');
 	};
 
 	self.addItem = function (fields) {
@@ -329,14 +416,14 @@ var mr_webapp = (function () {
 
 			var show_date = new Date(meeting.startdate).toLocaleString();
 			var meeting_details = '<strong>Start Time:</strong><br />'+show_date+'<br /><br />';
-			meeting_details = meeting_details + '<strong>Public:</strong> '+(meeting.public?'Yes':'No')+'<br />';
+			//meeting_details = meeting_details + '<strong>Public:</strong> '+(meeting.public?'Yes':'No')+'<br />';
 			if(meeting.duration) { meeting_details = meeting_details + '<strong>Duration:</strong> '+meeting.duration+' minutes<br />'; }
 			if(meeting.status) { meeting_details = meeting_details + '<strong>Status:</strong> '+meeting.status+'<br />'; }
 
 			$('#meeting-title').html(meeting.name);
 			$('#meeting-details').html(meeting_details);
 
-			$('#attendee-button').on('click', function () { addAttendee(meetingid); });
+			$('#attendee-button').on('click', function () { findAttendee(meetingid); });
 			$('#item-button').on('click', function () { 
 				if($('#item-owner').val() != '') {
 					self.getUser({ 'meetingid':meetingid, 'name':$('#item-owner').val() }, addItem);
@@ -409,12 +496,69 @@ var mr_webapp = (function () {
 		return false;
 	};
 
+	self.updateUser = function () {
+		var fields = {
+			'action'	: 'updateuser',
+			'name'		: $('#profile-name').val(),
+			'email'		: $('#profile-email').val(),
+			'password'	: $('#profile-password').val(),
+			'confirm'	: $('#profile-confirm').val()
+		};
+
+		if(fields.password && (fields.password != fields.confirm)) {
+			showError('Please confirm your new password.');
+			return;
+		}
+
+		fields.confirm = '';
+
+		mr_api.action(fields, function (data) {
+			if(data.status === 'success') {
+				$('#profile-password').val('');
+				$('#profile-confirm').val('');
+				showSuccess('Your profile has been updated.');
+			}
+			else {
+				console.log(JSON.stringify(data));
+				showError('There was a problem updating your profile.');
+			}
+		});
+
+		return false;
+	};
+
+	self.populateProfile = function () {
+		mr_api.action({ 'action':'getmyprofile' }, function (data) {
+			if(data.status === 'success') {
+				$('#profile-name').val(data.name);
+				$('#profile-email').val(data.email);
+			}
+			else {
+				showError('Error retrieving user profile.');
+			}
+		});
+	};
+
+	self.showProfile = function () {
+		self.populateProfile();
+		self.setPage('profile-form');
+		return false;
+	};
+
 	self.afterLogin = function (show_page) {
-		$('#menu-item-1').html('<a href="#" id="menu-review-link">Review</a>');
-		$('#menu-item-2').html('<a href="#" id="menu-create-link">Create</a>');
+		$('#menu-login-link').hide();
+		$('#menu-register-link').hide();
+
+		$('#menu-review-link').show();
+		$('#menu-create-link').show();
 
 		$('#menu-review-link').on('click', self.showMeetingsPage);
 		$('#menu-create-link').on('click', function () { self.clearMeetingForm(); self.showMeetingForm(); });
+
+		$('#menu-profile-link').on('click', self.showProfile);
+		$('#menu-profile-link').show();
+
+		$('#menu-logout-link').show();
 		
 		var hash_id = document.location.hash;
 
@@ -440,6 +584,9 @@ var mr_webapp = (function () {
 				var meetingid = $.cookie(LOAD_COOKIE);
 				self.viewMeeting(meetingid);
 				break;
+			case 'profile-form':
+				self.showProfile();
+				break;
 			default:
 				self.showMeetingsPage();
 				break;
@@ -447,11 +594,12 @@ var mr_webapp = (function () {
 	};
 
 	self.checkCookies = function () {
-		return { 'userid' : $.cookie(USER_COOKIE), 'token' : $.cookie(TOKEN_COOKIE), 'page' : $.cookie(PAGE_COOKIE) };
+		return { 'userid' : $.cookie(USER_COOKIE), 'token' : $.cookie(TOKEN_COOKIE), 'page' : $.cookie(PAGE_COOKIE), 'name' : $.cookie(NAME_COOKIE) };
 	};
 
-	self.setCookies = function (userid, token) {
+	self.setCookies = function (userid, token, name) {
 		$.cookie(USER_COOKIE, userid);
+		$.cookie(NAME_COOKIE, name);
 		$.cookie(TOKEN_COOKIE, token);
 		$.cookie(PAGE_COOKIE, current_page);
 	};
@@ -509,10 +657,19 @@ var mr_webapp = (function () {
 	$(document).ready(function () {
 		$("#menu-login-link").on('click', self.showLoginForm);
 		$("#menu-register-link").on('click', self.showRegisterForm);
-		$("#menu-logout-link").on('click', self.showLoginForm);
+		$("#menu-logout-link").on('click', function () { 
+			self.showLoginForm();
+			$('#menu-login-link').show();
+			$('#menu-register-link').show();
+			$('#menu-review-link').hide();
+			$('#menu-create-link').hide();
+			$('#menu-profile-link').hide();
+			$('#menu-logout-link').hide();
+		});
 		
 		$("#login-button").on('click', self.doLogin);
 		$("#register-button").on('click', self.doRegister);
+		$("#profile-button").on('click', self.updateUser);
 
 		$("#register-button").attr('disabled', 'disabled');
 		$("#register-form").find('input').change(function () {
@@ -529,6 +686,7 @@ var mr_webapp = (function () {
 		if(cookies.userid && cookies.token) {
 			mr_api.userid = cookies.userid;
 			mr_api.token = cookies.token;
+			mr_api.name = cookies.name;
 
 			self.afterLogin(cookies.page);
 		}
