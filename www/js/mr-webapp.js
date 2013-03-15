@@ -1,3 +1,6 @@
+// Meeting Rainbow Web App
+// Copyright 2013 David Matteson
+// Honestly if you'd steal this code I feel bad for you.
 
 var mr_webapp = (function () {
 	var	self = this,
@@ -13,6 +16,16 @@ var mr_webapp = (function () {
 		var regex = /^([a-zA-Z0-9_\.\-\+])+\@(([a-zA-Z0-9\-])+\.)+([a-zA-Z0-9]{2,4})+$/;
 		return regex.test(email);
 	};
+
+	self.formatDate = function(date) {  
+		var days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];  
+		var months = ["January", "February", "March", "April", "May","June", "July", "August", "September", "October", "November", "December"];  
+		var pad = function(str) { str = String(str); return (str.length < 2) ? "0" + str : str; }  
+
+		var meridian = (parseInt(date.getHours() / 12) == 1) ? 'PM' : 'AM';  
+		var hours = date.getHours() > 12 ? date.getHours() - 12 : date.getHours();  
+		return days[date.getDay()] + ' ' + months[date.getMonth()] + ' ' + date.getDate() + ' ' + date.getFullYear() + ' ' + hours + ':' + pad(date.getMinutes()) + ':' + pad(date.getSeconds()) + ' ' + meridian;  
+	}
 
 	self.generatePassword = function () {
 		var	length = 8,
@@ -77,10 +90,11 @@ var mr_webapp = (function () {
 	};
 
 	self.addMeeting = function () {
+		var isoDate = new Date($('#meeting-date').val()+' '+$('#meeting-time').val()).toISOString();
 		var fields = {
 			'action'	: 'addmeeting',
 			'name'		: $("#meeting-name").val(),
-			'startdate'	: $("#meeting-startdate").val(),
+			'startdate'	: isoDate,
 			'frequency'	: $("#meeting-frequency").val(),
 			'manualdays'	: $("#meeting-manualdays").val(),
 			'duration'	: $("#meeting-duration").val(),
@@ -106,11 +120,12 @@ var mr_webapp = (function () {
 	};
 
 	self.updateMeeting = function (meetingid) {
+		var isoDate = new Date($('#meeting-date').val()+' '+$('#meeting-time').val()).toISOString();
 		var fields = {
 			'action'	: 'updatemeeting',
 			'id'		: meetingid,
 			'name'		: $("#meeting-name").val(),
-			'startdate'	: $("#meeting-startdate").val(),
+			'startdate'	: isoDate,
 			'frequency'	: $("#meeting-frequency").val(),
 			'manualdays'	: $("#meeting-manualdays").val(),
 			'duration'	: $("#meeting-duration").val(),
@@ -145,6 +160,7 @@ var mr_webapp = (function () {
 	};
 
 	self.editMeeting = function (meetingid) {
+		var offset = new Date().getTimezoneOffset();
 		mr_api.action({ 'action':'getmeetings', 'id':meetingid }, function (data) {
 			var meeting = data.meetings[0];
 
@@ -154,7 +170,9 @@ var mr_webapp = (function () {
 				//}
 				if(key === 'startdate') {
 					var d  = new Date(meeting[key]);
-					meeting[key] = d.getFullYear()+'-'+(parseInt(d.getMonth())+1)+'-'+d.getDate()+' '+d.getHours()+':'+d.getMinutes();
+					d.setMinutes(d.getMinutes()-offset);
+					$('#meeting-date').val(parseInt(d.getMonth())+1+'/'+d.getDate()+'/'+d.getFullYear());
+					$('#meeting-time').val(d.getHours()+':'+d.getMinutes());
 				}
 				$('#meeting-'+key).val(meeting[key]);
 			}
@@ -273,6 +291,7 @@ var mr_webapp = (function () {
 					$('#'+itemid+'-owner-cell').append('<button class="btn btn-info" id="'+data.minutes[i].id+'-minutes-button">Save</button>');
 					$('#'+data.minutes[i].id+'-minutes-button').on('click', function () { self.updateItemMinutes(this.id.substr(0,36), meetingid); });
 					$('#'+itemid+'-item-row').off('click');
+					$('#'+data.minutes[i].id+'-content').autosize();
 				}
 			}
 			else {
@@ -308,6 +327,7 @@ var mr_webapp = (function () {
 						$('#'+itemid+'-owner-cell').append('<button class="btn btn-primary" id="'+itemid+'-minutes-button-new">Add</button>');
 						$('#'+itemid+'-item-row').off('click');
 						$('#'+itemid+'-minutes-button-new').on('click', function () { self.addItemMinutes(itemid, meetingid); });
+						$('#'+itemid+'-content-new').autosize();
 						return false;
 					});
 				});
@@ -407,6 +427,8 @@ var mr_webapp = (function () {
 	};
 
 	self.viewMeeting = function (meetingid) {
+		var offset = new Date().getTimezoneOffset();
+
 		self.clearMeetingView();
 		mr_api.action({ 'action':'getmeetings', 'id':meetingid }, function (data) {
 			var meeting = data.meetings[0];
@@ -414,7 +436,9 @@ var mr_webapp = (function () {
 			self.viewAttendees(meetingid);
 			self.viewItems(meetingid);
 
-			var show_date = new Date(meeting.startdate).toLocaleString();
+			var show_date = new Date(meeting.startdate);
+			show_date.setMinutes(show_date.getMinutes()-offset);
+			show_date = self.formatDate(show_date);
 			var meeting_details = '<strong>Start Time:</strong><br />'+show_date+'<br /><br />';
 			//meeting_details = meeting_details + '<strong>Public:</strong> '+(meeting.public?'Yes':'No')+'<br />';
 			if(meeting.duration) { meeting_details = meeting_details + '<strong>Duration:</strong> '+meeting.duration+' minutes<br />'; }
@@ -464,6 +488,8 @@ var mr_webapp = (function () {
 	};
 
 	self.populateMeetingsPage = function () {
+		var offset = new Date().getTimezoneOffset();
+		console.log('offset = '+offset);
 		mr_api.action({ 'action': 'getmeetings' }, function (data) {
 			if(data.status === 'error') {
 				self.showError("Couldn't retrieve meeting data: "+data.message);
@@ -473,7 +499,9 @@ var mr_webapp = (function () {
 			var contents = '';
 
 			for(var i in data.meetings) {
-				var show_date = new Date(data.meetings[i].startdate).toLocaleString();
+				var show_date = new Date(data.meetings[i].startdate);
+				show_date.setMinutes(show_date.getMinutes()-offset);
+				show_date = self.formatDate(show_date);
 				contents = contents + '<tr><td>'+data.meetings[i].name+'</td><td>'+show_date+'</td><td>'+data.meetings[i].status+'</td><td id="'+data.meetings[i].id+'-attendees"></td><td>'+data.meetings[i].frequency+'</td><td><button class="btn btn-info" id="'+data.meetings[i].id+'-edit-button">Edit</button></td><td><button class="btn btn-success" id="'+data.meetings[i].id+'-view-button">View</button></td></tr>';
 
 				self.populateAttendees(data.meetings[i].id);
@@ -680,6 +708,10 @@ var mr_webapp = (function () {
 				$("#register-button").attr('disabled', 'disabled');
 			}
 		});
+
+		$('#meeting-date').datepicker();
+
+		$('#meeting-time').timepicker({ 'timeFormat': 'H:i' });
 
 		var cookies = self.checkCookies();
 

@@ -1,4 +1,3 @@
-
 var mr_api = (function () {
 	var	self = this,
 		api_address = '//meetingrainbow.com/api/';
