@@ -23,7 +23,7 @@ var server = http.createServer(function (req, res) {
 	var query = require('url').parse(req.url, true).query;
 
 	var output = function (message) {
-		res.end(message);
+		res.end(JSON.stringify(message));
 	}
 
 	if(!query.action) {
@@ -116,13 +116,20 @@ var server = http.createServer(function (req, res) {
 				'startdate'	: query.startdate
 			}, output);
 			break;
+		case 'addnextmeeting':
+			mr_api.addNextMeeting({
+				'userid'	: query.userid,
+				'meetingid'	: query.meetingid
+			}, output);
+			break;
 		case 'additem':
 			mr_api.addItem({
 				'userid'	: query.userid,
 				'name'		: query.name,
 				'meetingid'	: query.meetingid,
 				'ownerid'	: query.ownerid,
-				'sortorder'	: query.sortorder
+				'sortorder'	: query.sortorder,
+				'superid'	: query.superid
 			}, output);
 			break;
 		case 'updateitem':
@@ -132,7 +139,8 @@ var server = http.createServer(function (req, res) {
 				'name'		: query.name,
 				'meetingid'	: query.meetingid,
 				'ownerid'	: query.ownerid,
-				'sortorder'	: query.sortorder
+				'sortorder'	: query.sortorder,
+				'superid'	: query.superid
 			}, output);
 			break;
 		case 'deleteitem':

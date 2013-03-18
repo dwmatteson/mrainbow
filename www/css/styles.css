@@ -9,6 +9,14 @@
 	width: 94%;
 }
 
+.input-10pct {
+	width: 10%;
+}
+
+.input-80pct {
+	width: 80%;
+}
+
 .cell-mini {
 	width: 75px;
 }
@@ -17,12 +25,24 @@
 	width: 105px;
 }
 
+.cell-medium {
+	width: 120px;
+}
+
 .minutes {
 	width: 94%;
 }
 
 .btn-top-spacing {
 	margin-top: 5px;
+}
+
+.btn-left-spacing {
+	margin-left: 5px;
+}
+
+.btn-wide {
+	width: 100%;
 }
 
 .error-box {

@@ -58,7 +58,7 @@ exports.create = function (config) {
 			'status'	: 'error',
 			'message'	: message
 		};
-		return JSON.stringify(error);
+		return error;
 	};
 
 	var mysqlError = function (mysql_err) {
@@ -73,7 +73,7 @@ exports.create = function (config) {
 
 		extend(success, data);
 
-		return JSON.stringify(success);
+		return success;
 	};
 
 	var nowTime = function() {
@@ -88,13 +88,13 @@ exports.create = function (config) {
 
 	var expireTokens = function () {
 		var now = nowTime();
-		console.log('before expire: tokens = '+JSON.stringify(tokens));
+		//console.log('before expire: tokens = '+JSON.stringify(tokens));
 		for(token in tokens) {
 			if(tokens[token].expire < now) {
 				delete tokens[token];
 			}
 		}
-		console.log('after expire: tokens = '+JSON.stringify(tokens));
+		//console.log('after expire: tokens = '+JSON.stringify(tokens));
 	};
 
 	var encryptPassword = function (password) {
@@ -302,7 +302,7 @@ exports.create = function (config) {
 
 		var	new_id = uuid.v4(),
 			now = new Date(),
-			startdate = dateFormat(now, "yyyy-dd-mm HH:MM:ss");
+			startdate = dateFormat(now, "yyyy-mm-dd HH:MM:ss");
 
 		var post = {
 			'id'		: new_id,
@@ -481,15 +481,16 @@ exports.create = function (config) {
 			return false;
 		}
 
-		var new_id = uuid.v4();
+		var	new_id = uuid.v4(),
+			startdate = new Date(fields.startdate);
 
 		var post = {
 			'id'		: new_id,
 			'userid'	: fields.userid,
 			'name'		: fields.name,
-			'startdate'	: fields.startdate,
+			'startdate'	: dateFormat(startdate, "yyyy-mm-dd HH:MM:ss"),
 			'frequency'	: fields.frequency,
-			'status'	: 'Scheduled'
+			'meetingstatus'	: 'Scheduled'
 		}
 
 		post.manualdays = null;
@@ -526,7 +527,7 @@ exports.create = function (config) {
 			post.public = null;
 		}
 
-		var query = db.query('INSERT INTO meetings SET id = :id, userid = :userid, name = :name, startdate = :startdate, frequency = :frequency, status = :status, nextdate = :nextdate, manualdays = :manualdays, lastid = :lastid, duration = :duration, public = :public', post, function (err, result) {
+		var query = db.query('INSERT INTO meetings SET id = :id, userid = :userid, name = :name, startdate = :startdate, frequency = :frequency, status = :meetingstatus, nextdate = :nextdate, manualdays = :manualdays, lastid = :lastid, duration = :duration, public = :public', post, function (err, result) {
 			if(err) {
 				message = mysqlError(err);
 				console.log('MySQL error encountered on INSERT. err = '+JSON.stringify(err)+'\nmessage = '+message+'\npost = '+JSON.stringify(post)+'\n');
@@ -625,7 +626,7 @@ exports.create = function (config) {
 			querystring =  'SELECT meetings.* FROM meetings WHERE meetings.startdate = :startdate';
 		}
 
-		var query = db.query(querystring, post, function (err, results) {
+		var query = db.query(querystring+' ORDER BY meetings.startdate DESC', post, function (err, results) {
 			if(err) {
 				message = mysqlError(err);
 				console.log('MySQL error encountered on UPDATE. err = '+JSON.stringify(err)+'\nmessage = '+message+'\npost = '+JSON.stringify(post)+'\n');
@@ -663,6 +664,115 @@ exports.create = function (config) {
 		});
 	};
 
+	self.addNextMeeting = function (fields, output) {
+		var missings = checkRequired([ 'userid', 'meetingid' ], fields);
+		var message = '';
+
+		if(missings) {
+			message = errorMessage(missings);
+			output(message);
+			return false;
+		}
+
+		checkMeetingPermission(fields.meetingid, fields.userid, function (permission, meeting) {
+			if(!permission) {
+				message = errorMessage('User is not authorized to add the next meeting in this series.');
+				output(message);
+				return;
+			}
+
+			var new_meetingid = uuid.v4();
+
+			var post = {
+				'id'		: new_meetingid,
+				'name'		: meeting.name,
+				'lastid'	: meeting.id,
+				'frequency'	: meeting.frequency,
+				'manualdays'	: meeting.manualdays,
+				'startdate'	: meeting.nextdate,
+				'userid'	: fields.userid,
+				'duration'	: meeting.duration,
+				'meetingstatus'	: 'Scheduled',
+				'public'	: meeting.public
+			};
+
+			if(meeting.frequency === 'Never') {
+				post.nexdate = null;
+			}
+			else {
+				post.nextdate = calculateNextDate(meeting.startdate, meeting.frequency, meeting.manualdays);
+
+				if(meeting.frequency === 'Manual') {
+					post.manualdays = meeting.manualdays;
+				}
+			}
+
+			var query = db.query('INSERT INTO meetings SET id = :id, userid = :userid, name = :name, startdate = :startdate, frequency = :frequency, status = :meetingstatus, nextdate = :nextdate, manualdays = :manualdays, lastid = :lastid, duration = :duration, public = :public', post, function (err, result) {
+				if(err) {
+					message = mysqlError(err);
+					console.log('MySQL error encountered on INSERT. err = '+JSON.stringify(err)+'\nmessage = '+message+'\npost = '+JSON.stringify(post)+'\n');
+				}
+				else {
+					message = successMessage(post);
+				}
+
+				self.updateMeeting({ 'id':fields.meetingid, 'userid':fields.userid, 'nextid':new_meetingid }, function () { return; });
+
+				// Import Items and Attendees from prior meeting
+				self.getItems(fields, function (data) {
+					if(data.status === 'success') {
+						var	i = 0,
+							items = [],
+							sub_items = {};
+
+						// Sort out sub items and migrate them after the main item
+						for(i in data.items) {
+							if(data.items[i].superid) {
+								if(sub_items[data.items[i].superid] === undefined) {
+									sub_items[data.items[i].superid] = [];
+								}
+								sub_items[data.items[i].superid].push(data.items[i]);
+							}
+							else {
+								items.push(data.items[i]);
+							}
+						}
+
+						i = 0;
+						for(i in items) {
+							self.addItem({ 'userid':items[i].userid, 'name':items[i].name, 'meetingid':new_meetingid, 'ownerid':items[i].ownerid, 'sortorder':String(items[i].sortorder) }, function (data) { 
+								if(data.status === 'success') {
+									var	i = 0,
+										new_itemid = data.id,
+										subs = sub_items[items[i].id];
+									
+									for(i in subs) {
+										self.addItem({ 'userid':subs[i].userid, 'name':subs[i].name, 'meetingid':new_meetingid, 'ownerid':subs[i].ownerid, 'sortorder':String(subs[i].sortorder), 'superid':new_itemid }, function (stuff) { console.log('Attempt to migrate sub-item returned: '+JSON.stringify(stuff)); });
+									}
+								}
+								else {
+									console.log('Attempt to migrate Item failed: '+data.message);
+								}
+							});
+						}
+					}
+				});
+
+				self.getAttendees(fields, function (data) {
+					if(data.status === 'success') {
+						var	i = 0;
+						for(i in data.attendees) {
+							self.addAttendee({ 'userid':fields.userid, 'meetingid':new_meetingid, 'attendeeid':data.attendees[i].attendeeid, 'memo':data.attendees[i].memo }, function (result) { if(result.status != 'success') { console.log('Attempt to migrate Attendee returned: '+JSON.stringify(result)); } });
+						}
+					}
+				});
+
+				output(message);
+			});
+
+		});
+	};
+
 	self.addItem = function (fields, output) {
 		var missings = checkRequired([ 'userid', 'name', 'meetingid', 'sortorder' ], fields);
 		var message = '';
@@ -686,14 +796,15 @@ exports.create = function (config) {
 				'meetingid'	: fields.meetingid,
 				'userid'	: fields.userid,
 				'ownerid'	: fields.ownerid,
-				'sortorder'	: fields.sortorder
+				'sortorder'	: fields.sortorder,
+				'superid'	: fields.superid
 			};
 
 			if(!post.ownerid) {
 				post.ownerid = post.userid;
 			}
 
-			var query = db.query('INSERT INTO items SET id = :id, name = :name, meetingid = :meetingid, userid = :userid, ownerid = :ownerid, sortorder = :sortorder', post, function (err, result) {
+			var query = db.query('INSERT INTO items SET id = :id, name = :name, meetingid = :meetingid, userid = :userid, ownerid = :ownerid, sortorder = :sortorder, superid = :superid', post, function (err, result) {
 				if(err) {
 					message = mysqlError(err);
 					console.log('MySQL error encountered on INSERT. err = '+JSON.stringify(err)+'\nmessage = '+message+'\npost = '+JSON.stringify(post)+'\n');
@@ -735,7 +846,7 @@ exports.create = function (config) {
 				}
 			}
 
-			var query = db.query('UPDATE items SET name = :name, ownerid = :ownerid, sortorder = :sortorder WHERE id = :id', post, function (err, result) {
+			var query = db.query('UPDATE items SET name = :name, ownerid = :ownerid, sortorder = :sortorder, superid = :superid WHERE id = :id', post, function (err, result) {
 				if(err) {
 					message = mysqlError(err);
 					console.log('MySQL error encountered on UPDATE. err = '+JSON.stringify(err)+'\nmessage = '+message+'\npost = '+JSON.stringify(post)+'\n');
@@ -768,7 +879,7 @@ exports.create = function (config) {
 
 			var post = { 'id' : fields.id };
 
-			var query = db.query('DELETE FROM items WHERE id = :id', post, function (err, result) {
+			var query = db.query('DELETE FROM items WHERE id = :id OR superid = :id', post, function (err, result) {
 				if(err) {
 					message = mysqlError(err);
 					console.log('MySQL error encountered on DELETE. err = '+JSON.stringify(err)+'\nmessage = '+message+'\npost = '+JSON.stringify(post)+'\n');

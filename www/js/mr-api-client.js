@@ -1,6 +1,7 @@
 var mr_api = (function () {
 	var	self = this,
 		api_address = '//meetingrainbow.com/api/';
+		api_address = '//localhost/api/';
 
 	self.userid = '';
 	self.token = '';

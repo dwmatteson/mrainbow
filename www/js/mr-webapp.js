@@ -186,6 +186,19 @@ var mr_webapp = (function () {
 		});
 	};
 
+	self.addNextMeeting = function (meetingid) {
+		mr_api.action({ 'action':'addnextmeeting', 'meetingid':meetingid }, function (data) {
+			if(data.status === 'success') {
+				self.showMeetingsPage();
+			}
+			else {
+				self.showError('There was a problem adding the next meeting: '+data.message);
+			}
+		});
+
+		return false;
+	};
+
 	self.viewAttendees = function (meetingid) {
 		mr_api.action({ 'action':'getattendees', 'meetingid':meetingid }, function (data) {
 			var attendee_names = '';
@@ -213,7 +226,8 @@ var mr_webapp = (function () {
 				'id'		: itemid,
 				'name'		: $('#'+itemid+'-name').val(),
 				'sortorder'	: $('#'+itemid+'-sortorder').val(),
-				'ownerid'	: data.id
+				'ownerid'	: data.id,
+				'superid'	: $('#'+itemid+'-name').data('superid')
 			};
 			mr_api.action(fields, function (data) {
 				if(data.status === 'success') {
@@ -299,16 +313,34 @@ var mr_webapp = (function () {
 		});
 	};
 
+	self.viewSubItems = function (meetingid, items) {
+		var contents = {};
+
+		for(var i in items) {
+			if(!items[i].superid) { continue; }
+			if(contents[items[i].superid] === undefined) { contents[items[i].superid] = ''; }
+			contents[items[i].superid] = contents[items[i].superid] + '<tr id="'+items[i].id+'-item-row" data-superid="'+items[i].superid+'"><td></td><td id="'+items[i].id+'-name-cell"><input type="text" class="input-10pct" id="'+items[i].id+'-sortorder" value="'+items[i].sortorder+'"><input type="text" class="input-80pct" id="'+items[i].id+'-name" data-superid="'+items[i].superid+'" value="'+items[i].name+'"></td><td id="'+items[i].id+'-owner-cell"><input type="text" class="input-small" id="'+items[i].id+'-ownername" data-superid="'+items[i].superid+'" data-ownerid="'+items[i].ownerid+'" value=""></td><td><button type="submit" class="btn btn-success" id="'+items[i].id+'-update-button">Update</button><button type="submit" class="btn btn-danger btn-top-spacing" id="'+items[i].id+'-delete-button">Delete</button></td></tr>';
+		}
+
+		$('[id$=-item-row]').each(function () {
+			var itemid = this.id.substr(0,36);
+			$(contents[itemid]).insertAfter(this);
+		});
+	};
+
 	self.viewItems = function (meetingid) {
 		mr_api.action({ 'action':'getitems', 'meetingid':meetingid }, function (data) {
 			if(data.status === 'success') {
 				var contents = '';
 
 				for(var i in data.items) {
-					contents = contents + '<tr id="'+data.items[i].id+'-item-row"><td><input type="text" class="input-mini" id="'+data.items[i].id+'-sortorder" value="'+data.items[i].sortorder+'"></td><td id="'+data.items[i].id+'-name-cell"><input type="text" class="input-wide" id="'+data.items[i].id+'-name" value="'+data.items[i].name+'"></td><td id="'+data.items[i].id+'-owner-cell"><input type="text" class="input-small" id="'+data.items[i].id+'-ownername" data-ownerid="'+data.items[i].ownerid+'" value=""></td><td><button type="submit" class="btn btn-success" id="'+data.items[i].id+'-update-button">Update</button><button type="submit" class="btn btn-danger btn-top-spacing" id="'+data.items[i].id+'-delete-button">Delete</button></td></tr>';
+					if(data.items[i].superid) { continue; }
+					contents = contents + '<tr id="'+data.items[i].id+'-item-row"><td><input type="text" class="input-mini" id="'+data.items[i].id+'-sortorder" value="'+data.items[i].sortorder+'"></td><td id="'+data.items[i].id+'-name-cell"><input type="text" class="input-wide" id="'+data.items[i].id+'-name" value="'+data.items[i].name+'"></td><td id="'+data.items[i].id+'-owner-cell"><input type="text" class="input-small" id="'+data.items[i].id+'-ownername" data-superid="" data-ownerid="'+data.items[i].ownerid+'" value=""></td><td><button type="submit" class="btn btn-success" id="'+data.items[i].id+'-update-button">Update</button><button type="submit" class="btn btn-danger btn-top-spacing" id="'+data.items[i].id+'-delete-button">Delete</button></td></tr>';
 				}
 
 				$('#items-table').find('tbody').html(contents);
+
+				self.viewSubItems(meetingid, data.items);
 
 				$("[id$=-ownername]").each(function () {
 					var	ownerid = $(this).data('ownerid'),
@@ -328,6 +360,22 @@ var mr_webapp = (function () {
 						$('#'+itemid+'-item-row').off('click');
 						$('#'+itemid+'-minutes-button-new').on('click', function () { self.addItemMinutes(itemid, meetingid); });
 						$('#'+itemid+'-content-new').autosize();
+
+						if(!$(this).data('superid')) {
+							var content = '<tr><td></td><td><input type="text" class="input-10pct" id="'+itemid+'-sub-sortorder" placeholder="Sort" value=""><input type="text" class="input-80pct" id="'+itemid+'-sub-name" placeholder="Sub-Item Name" value=""></td><td><input type="text" class="input-small" placeholder="Owner Name" id="'+itemid+'-sub-ownername" value=""></td><td><button type="submit" class="btn btn-primary" id="'+itemid+'-sub-button">Add Sub</button></td></tr>';
+
+							$(content).insertAfter(this);
+
+							$('#'+itemid+'-sub-button').on('click', function () { 
+								if($('#'+itemid+'-sub-ownername').val() != '') {
+									self.getUser({ 'meetingid':meetingid, 'name':$('#'+itemid+'-sub-ownername').val(), 'superid':itemid }, addSubItem);
+								}
+								else {
+									self.addSubItem({ 'meetingid':meetingid, 'superid':itemid });
+								}
+							});
+						}
+
 						return false;
 					});
 				});
@@ -392,6 +440,24 @@ var mr_webapp = (function () {
 		$('#item-button').off('click');
 	};
 
+	self.addSubItem = function (fields) {
+		fields.action = 'additem';
+		fields.name = $('#'+fields.superid+'-sub-name').val();
+		fields.sortorder = $('#'+fields.superid+'-sub-sortorder').val();
+
+		if(fields.id) { fields.ownerid = fields.id; }
+
+		mr_api.action(fields, function (data) {
+			if(data.status === 'success') {
+				viewMeeting(fields.meetingid);
+			}
+			else {
+				showError('There was an error adding the sub-item.');
+				console.log('Error adding sub-item to meeting id = '+fields.meetingid);
+			}
+		});
+	};
+
 	self.addItem = function (fields) {
 		fields.action = 'additem';
 		fields.name = $('#item-name').val();
@@ -410,11 +476,12 @@ var mr_webapp = (function () {
 		});
 	};
 
+	
 	self.getUser = function (fields, cb) {
 		fields.action = 'getuser';
 		mr_api.action(fields, function (data) {
 			if(data.status === 'success') {
-				cb({ 'meetingid':fields.meetingid, 'itemid':fields.itemid, 'id':data.id, 'name':data.name });
+				cb({ 'meetingid':fields.meetingid, 'itemid':fields.itemid, 'id':data.id, 'name':data.name, 'superid': fields.superid });
 			}
 			else if(data.id === undefined) {
 				showError('No user found for that information.');
@@ -502,7 +569,14 @@ var mr_webapp = (function () {
 				var show_date = new Date(data.meetings[i].startdate);
 				show_date.setMinutes(show_date.getMinutes()-offset);
 				show_date = self.formatDate(show_date);
-				contents = contents + '<tr><td>'+data.meetings[i].name+'</td><td>'+show_date+'</td><td>'+data.meetings[i].status+'</td><td id="'+data.meetings[i].id+'-attendees"></td><td>'+data.meetings[i].frequency+'</td><td><button class="btn btn-info" id="'+data.meetings[i].id+'-edit-button">Edit</button></td><td><button class="btn btn-success" id="'+data.meetings[i].id+'-view-button">View</button></td></tr>';
+
+				var buttons = '<button class="btn btn-info" id="'+data.meetings[i].id+'-edit-button">Edit</button><button class="btn btn-success btn-left-spacing" id="'+data.meetings[i].id+'-view-button">View</button>';
+				
+				if(data.meetings[i].nextdate && !data.meetings[i].nextid) {
+					buttons = buttons + '<button class="btn btn-warning btn-top-spacing" id="'+data.meetings[i].id+'-next-button">Create Next</button>';
+				}
+
+				contents = contents + '<tr><td>'+data.meetings[i].name+'</td><td>'+show_date+'</td><td>'+data.meetings[i].status+'</td><td id="'+data.meetings[i].id+'-attendees"></td><td>'+data.meetings[i].frequency+'</td><td>'+buttons+'</td></tr>';
 
 				self.populateAttendees(data.meetings[i].id);
 			}
@@ -514,6 +588,10 @@ var mr_webapp = (function () {
 			});
 			$("[id$=-view-button]").on('click', function () {
 				self.viewMeeting(this.id.substring(0,36));
+			});
+
+			$("[id$=-next-button]").on('click', function () {
+				self.addNextMeeting(this.id.substring(0,36));
 			});
 		});
 	};
