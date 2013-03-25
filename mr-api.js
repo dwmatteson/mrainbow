@@ -82,7 +82,7 @@ exports.create = function (config) {
 
 	var createToken = function (userid) {
 		var token = uuid.v4();
-		tokens[token] = { 'userid':userid, 'expire': nowTime() + (3 * 3600) };
+		tokens[token] = { 'userid':userid, 'expire': nowTime() + (10 * 3600) };
 		return token;
 	};
 

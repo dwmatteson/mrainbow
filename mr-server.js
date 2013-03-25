@@ -221,3 +221,7 @@ var server = http.createServer(function (req, res) {
 });
 
 server.listen(7878, 'localhost');
+
+process.on('uncaughtException', function (error) {
+	console.log(error.stack);
+});

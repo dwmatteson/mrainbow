@@ -10,7 +10,8 @@ var mr_webapp = (function () {
 		NAME_COOKIE = 'mr_n',
 		TOKEN_COOKIE = 'mr_t',
 		PAGE_COOKIE = 'mr_p',
-		LOAD_COOKIE = 'mr_l';
+		LOAD_COOKIE = 'mr_l',
+		SOCKET_COOKIE = 'mr_s';
 
 	self.validEmail = function (email) {
 		var regex = /^([a-zA-Z0-9_\.\-\+])+\@(([a-zA-Z0-9\-])+\.)+([a-zA-Z0-9]{2,4})+$/;
@@ -66,6 +67,9 @@ var mr_webapp = (function () {
 	};
 
 	self.setPage = function (new_page) {
+		if(current_page === 'viewmeeting') {
+			mr_api.socket.output({ 'action':'leavemeeting', 'userid':mr_api.userid, 'id':location.hash });
+		}
 		self.clearBoxes();
 		$('#'+current_page).hide();
 		$('#'+new_page).show();
@@ -78,6 +82,7 @@ var mr_webapp = (function () {
 		$.cookie(USER_COOKIE, '');
 		$.cookie(NAME_COOKIE, '');
 		$.cookie(TOKEN_COOKIE, '');
+		$.cookie(SOCKET_COOKIE, '');
 		mr_api.userid = '';
 		mr_api.token = '';
 		self.setPage('login-form');
@@ -265,6 +270,13 @@ var mr_webapp = (function () {
 		};
 		mr_api.action(fields, function (data) {
 			if(data.status === 'success') {
+				mr_api.socket.output({
+					'action'	: 'addminutes',
+					'meetingid'	: meetingid,
+					'itemid'	: itemid,
+					'id'		: data.id,
+					'content'	: data.content
+				});
 				self.viewMeeting(meetingid);
 			}
 			else {
@@ -307,8 +319,36 @@ var mr_webapp = (function () {
 					$('#'+itemid+'-item-row').off('click');
 					$('#'+data.minutes[i].id+'-content').autosize();
 				}
-			}
-			else {
+
+				$('[id$=-content]').each(function () {
+					var	self = $(this),
+						minutesid = self.attr('id').substr(0,36),
+						itemid = self.parent().attr('id').substr(0,36),
+						key_count = 0;
+						last_timeout = undefined;
+
+					// Send update if 10 or more characters typed OR 500ms pause between characters.
+					self.on('keyup', function (e) {
+						if(last_timeout && key_count < 10) {
+							clearTimeout(last_timeout);
+							key_count += 1;
+						}
+						else {
+							key_count = 0;
+						}
+
+						last_timeout = setTimeout(function () {
+							mr_api.socket.output({
+								'action'	: 'updateminutes',
+								'id'		: minutesid,
+								'itemid'	: itemid,
+								'content'	: self.val()
+							});
+							last_timeout = undefined;
+							key_count = 0;
+						}, 500);
+					});
+				});
 			}
 		});
 	};
@@ -395,7 +435,7 @@ var mr_webapp = (function () {
 	self.addAttendee = function (fields) {
 		mr_api.action({ 'action':'addattendee', 'attendeeid':fields.id, 'meetingid':fields.meetingid }, function (data) {
 			if(data.status === 'success') {
-				viewMeeting(fields.meetingid);
+				self.viewMeeting(fields.meetingid);
 			}
 			else {
 				showError('There was an error adding the attendee.');
@@ -449,7 +489,7 @@ var mr_webapp = (function () {
 
 		mr_api.action(fields, function (data) {
 			if(data.status === 'success') {
-				viewMeeting(fields.meetingid);
+				self.viewMeeting(fields.meetingid);
 			}
 			else {
 				showError('There was an error adding the sub-item.');
@@ -467,7 +507,7 @@ var mr_webapp = (function () {
 
 		mr_api.action(fields, function (data) {
 			if(data.status === 'success') {
-				viewMeeting(fields.meetingid);
+				self.viewMeeting(fields.meetingid);
 			}
 			else {
 				showError('There was an error adding the item.');
@@ -523,6 +563,8 @@ var mr_webapp = (function () {
 					self.addItem({ 'meetingid':meetingid });
 				}
 			});
+
+			mr_api.socket.output({ 'action':'viewmeeting', 'id':meetingid });
 
 			$.cookie(LOAD_COOKIE, meetingid);
 			self.setPage('meeting-view');
@@ -700,7 +742,7 @@ var mr_webapp = (function () {
 	};
 
 	self.checkCookies = function () {
-		return { 'userid' : $.cookie(USER_COOKIE), 'token' : $.cookie(TOKEN_COOKIE), 'page' : $.cookie(PAGE_COOKIE), 'name' : $.cookie(NAME_COOKIE) };
+		return { 'userid' : $.cookie(USER_COOKIE), 'token' : $.cookie(TOKEN_COOKIE), 'page' : $.cookie(PAGE_COOKIE), 'name' : $.cookie(NAME_COOKIE), 'socket' : $.cookie(SOCKET_COOKIE) };
 	};
 
 	self.setCookies = function (userid, token, name) {
@@ -797,12 +839,76 @@ var mr_webapp = (function () {
 			mr_api.userid = cookies.userid;
 			mr_api.token = cookies.token;
 			mr_api.name = cookies.name;
+			mr_api.socket.token = cookies.socket;
+
+			if(mr_api.socket.token) {
+				mr_api.socket.output({ 'action':'reestablish', 'userid':mr_api.userid, 'token':mr_api.socket.token });
+			}
 
 			self.afterLogin(cookies.page);
 		}
 		else {
 			self.showLoginForm();
 		}
+
+		mr_api.messagehandler = function (message) {
+			if(message.token) {
+				$.cookie(SOCKET_COOKIE, message.token);
+			}
+
+			switch(message.action) {
+				case 'updateminutes':
+					$('#'+message.id+'-content').val(message.content).trigger('autosize');
+					break;
+				case 'addminutes':
+					// In case Minutes input area is there, get rid of it.
+					$('#'+message.itemid+'-name-cell').find('textarea').remove();
+					$('#'+message.itemid+'-owner-cell').find('button').remove();
+
+					// Add our new minutes
+					$('#'+message.itemid+'-name-cell').append('<textarea class="minutes" id="'+message.id+'-content">'+message.content+'</textarea>');
+					$('#'+message.itemid+'-owner-cell').append('<button class="btn btn-info" id="'+message.id+'-minutes-button">Save</button>');
+					$('#'+message.id+'-minutes-button').on('click', function () { self.updateItemMinutes(this.id.substr(0,36), message.meetingid); });
+					$('#'+message.itemid+'-item-row').off('click');
+					$('#'+message.id+'-content').autosize().each(function () {
+						var	self = $(this),
+							minutesid = self.attr('id').substr(0,36),
+							itemid = self.parent().attr('id').substr(0,36),
+							key_count = 0;
+							last_timeout = undefined;
+
+						// Send update if 10 or more characters typed OR 500ms pause between characters.
+						self.on('keyup', function (e) {
+							if(last_timeout && key_count < 10) {
+								clearTimeout(last_timeout);
+								key_count += 1;
+							}
+							else {
+								key_count = 0;
+							}
+
+							last_timeout = setTimeout(function () {
+								mr_api.socket.output({
+									'action'	: 'updateminutes',
+									'id'		: minutesid,
+									'itemid'	: itemid,
+									'content'	: self.val()
+								});
+								last_timeout = undefined;
+								key_count = 0;
+							}, 500);
+						});
+					});
+
+					break;
+				default:
+					console.log('messagehandler: unrecognized message action: '+JSON.stringify(message));
+					break;
+			}
+		};
+
+		// Start the socket send method after 1s delay
+		setTimeout(function () { mr_api.socket.intervalsend(); }, 1000);
 	});
 
 	return self;
