@@ -721,7 +721,7 @@ exports.create = function (config) {
 				// Import Items and Attendees from prior meeting
 				self.getItems(fields, function (data) {
 					if(data.status === 'success') {
-						var	i = 0,
+						var	i = 0, 
 							items = [],
 							sub_items = {};
 
@@ -740,14 +740,14 @@ exports.create = function (config) {
 
 						i = 0;
 						for(i in items) {
-							self.addItem({ 'userid':items[i].userid, 'name':items[i].name, 'meetingid':new_meetingid, 'ownerid':items[i].ownerid, 'sortorder':String(items[i].sortorder) }, function (data) { 
+							self.addItem({ 'userid':items[i].userid, 'name':items[i].name, 'meetingid':new_meetingid, 'ownerid':items[i].ownerid, 'sortorder':String(items[i].sortorder), 'lastid':items[i].id }, function (data) { 
 								if(data.status === 'success') {
-									var	i = 0,
+									var	j = 0,
 										new_itemid = data.id,
-										subs = sub_items[items[i].id];
+										subs = sub_items[data.lastid];
 									
-									for(i in subs) {
-										self.addItem({ 'userid':subs[i].userid, 'name':subs[i].name, 'meetingid':new_meetingid, 'ownerid':subs[i].ownerid, 'sortorder':String(subs[i].sortorder), 'superid':new_itemid }, function (stuff) { console.log('Attempt to migrate sub-item returned: '+JSON.stringify(stuff)); });
+									for(j in subs) {
+										self.addItem({ 'userid':subs[j].userid, 'name':subs[j].name, 'meetingid':new_meetingid, 'ownerid':subs[j].ownerid, 'sortorder':String(subs[j].sortorder), 'superid':new_itemid, 'lastid':subs[j].id }, function (stuff) { console.log('Attempt to migrate sub-item returned: '+JSON.stringify(stuff)); });
 									}
 								}
 								else {
@@ -790,6 +790,10 @@ exports.create = function (config) {
 				return;
 			}
 
+			if(fields.lastid === undefined) {
+				fields.lastid = '';
+			}
+
 			var post = {
 				'id'		: uuid.v4(),
 				'name'		: fields.name,
@@ -797,14 +801,15 @@ exports.create = function (config) {
 				'userid'	: fields.userid,
 				'ownerid'	: fields.ownerid,
 				'sortorder'	: fields.sortorder,
-				'superid'	: fields.superid
+				'superid'	: fields.superid,
+				'lastid'	: fields.lastid
 			};
 
 			if(!post.ownerid) {
 				post.ownerid = post.userid;
 			}
 
-			var query = db.query('INSERT INTO items SET id = :id, name = :name, meetingid = :meetingid, userid = :userid, ownerid = :ownerid, sortorder = :sortorder, superid = :superid', post, function (err, result) {
+			var query = db.query('INSERT INTO items SET id = :id, name = :name, meetingid = :meetingid, userid = :userid, ownerid = :ownerid, sortorder = :sortorder, superid = :superid, lastid = :lastid', post, function (err, result) {
 				if(err) {
 					message = mysqlError(err);
 					console.log('MySQL error encountered on INSERT. err = '+JSON.stringify(err)+'\nmessage = '+message+'\npost = '+JSON.stringify(post)+'\n');

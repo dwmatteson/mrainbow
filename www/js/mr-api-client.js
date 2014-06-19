@@ -4,8 +4,8 @@ var mr_api = (function () {
 		websocket_address = 'ws://meetingrainbow.com:8181/';
 
 	// development addresses, comment out for production
-	api_address = '//localhost/api/';
-	websocket_address = 'ws://localhost:8181/';
+	//api_address = '//localhost/api/';
+	//websocket_address = 'ws://localhost:8181/';
 
 	self.socket = new WebSocket(websocket_address);
 	self.socket.outputqueue = [];
@@ -77,7 +77,7 @@ var mr_api = (function () {
 		setTimeout(self.socket.intervalsend, 1000);
 	};
 
-	self.socket.onmessage = function (data) {
+	self.socket.onmessage = function (event) {
 		console.log(event.data); 
 		var message = JSON.parse(event.data); 
 
