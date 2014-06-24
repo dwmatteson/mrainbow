@@ -1,0 +1,106 @@
+<h3>{{ meeting.name }} <small>{{ meeting.startdate | date }}</small></h3>
+
+<div class="row">
+	<div class="col-md-4">
+		<table class="table table-hover">
+			<thead>
+				<tr>
+					<td><strong>Attendees</strong></td>
+					<td><strong>Status</strong></td>
+				</tr>
+			</thead>
+
+			<tbody>
+				<tr ng-repeat="attendee in meeting.attendees">
+					<td class="col-md-2">{{ attendee.name }}</td>
+					<td class="col-md-2">{{ attendee.status }}</td>
+				</tr>
+			</tbody>
+
+			<tfoot>
+				<tr>
+					<td colspan="4" class="col-md-4">
+						<a ng-click="" editable-email="inviteEmail" onbeforesave="sendInvite($data)" e-placeholder="Enter email address"><span class="glyphicon glyphicon-envelope"></span> Send Invite</a>
+					</td>
+				</tr>
+			</tfoot>
+		</table>
+	</div>
+</div>
+
+<table class="table table-striped table-hover">
+	<thead>
+		<tr>
+			<td><strong>Items</strong></td>
+			<td><strong>Owner</strong></td>
+			<td><strong>Minutes</strong></td>
+		</tr>
+	</thead>
+
+	<tbody>
+		<tr ng-repeat="item in meeting.supers">
+			<td class="col-md-2"><span editable-text="item.name" onbeforesave="updateItem(item, 'name', $data)">{{ item.name }}</span></td>
+			<td class="col-md-1"><span editable-select="item.ownername" e-ng-options="user.name as user.name for user in meeting.attendees" onshow="loadAttendees()" onbeforesave="updateItem(item, 'ownername', $data)">{{ item.ownername }}</span></td>
+			<td class="col-md-9">
+				<a ng-click="addMinutes(item)">
+					<span ng-show="item.minutes === undefined || item.minutes.length === 0"><span class="glyphicon glyphicon-th-list"></span> Add Minutes</span>
+				</a>
+				<span ng-hide="item.minutes === undefined || item.minutes.length === 0" ng-repeat="minutes in item.minutes">
+					<strong>{{ minutes.username }}</strong> 
+					<a ng-show="item.lastid && item.id == minutes.itemid" ng-click="showHistory(item)"><span class="glyphicon glyphicon-gift"></span></a> 
+					<a ng-show="item.id != minutes.itemid" ng-click="dismissHistory($index, item.minutes)"><span class="glyphicon glyphicon-remove"></span></a>
+					<p class="minutes"><span editable-textarea="minutes.content" onbeforesave="updateMinutes(item, $index, $data)" e-rows="5" e-cols="75">{{ minutes.content }}</span></p>
+				</span>
+
+				<a ng-show="meeting.subs[item.id] === undefined || meeting.subs[item.id].length === 0" ng-click="addItem(item.id)">
+					<p><span class="glyphicon glyphicon-plus"></span> Add Sub-Item</p>
+				</a>
+				<table ng-hide="meeting.subs[item.id] === undefined || meeting.subs[item.id].length === 0" class="table table-striped table-hover">
+
+					<thead>
+						<tr>
+							<td><strong>Sub-Items</strong></td>
+							<td><strong>Owner</strong></td>
+							<td><strong>Minutes</strong></td>
+						</tr>
+					</thead>
+
+					<tbody>
+						<tr ng-repeat="subitem in meeting.subs[item.id]">
+							<td class="col-md-3"><span editable-text="subitem.name" onbeforesave="updateItem(subitem, 'name', $data)">{{ subitem.name }}</span></td>
+							<td class="col-md-2"><span editable-select="subitem.ownername" e-ng-options="user.name as user.name for user in meeting.attendees" onshow="loadAttendees()" onbeforesave="updateItem(item, 'ownername', $data)">{{ subitem.ownername }}</span></td>
+							<td class="col-md-7">
+								<a ng-click="addMinutes(subitem)">
+									<span ng-show="subitem.minutes === undefined || subitem.minutes.length === 0"><span class="glyphicon glyphicon-th-list"></span> Add Minutes</span>
+								</a>
+								<span ng-hide="subitem.minutes === undefined || subitem.minutes.length === 0" ng-repeat="subminutes in subitem.minutes">
+									<strong>{{ subminutes.username }}</strong>
+									<a ng-show="subitem.lastid && subitem.id == subminutes.itemid" ng-click="showHistory(subitem)"><span class="glyphicon glyphicon-gift"></span></a> 
+									<a ng-show="subitem.id != subminutes.itemid" ng-click="dismissHistory($index, subitem.minutes)"><span class="glyphicon glyphicon-remove"></span></a>
+
+									<p class="minutes"><span editable-textarea="subminutes.content" onbeforesave="updateMinutes(subitem, $index, $data)" e-rows="5" e-cols="40">{{ subminutes.content }}</span></p>
+								</span>
+							</td>
+						</tr>
+					</tbody>
+
+					<tfoot>
+						<tr>
+							<td colspan="3" class="col-md-12">
+								<a ng-click="addItem(item.id)"><span class="glyphicon glyphicon-plus"></span> Add Sub-Item</a>
+							</td>
+						</tr>
+					</tfoot>
+				</table>
+			</td>
+		</tr>
+	</tbody>
+
+	<tfoot>
+		<tr>
+			<td colspan="3" class="col-md-12">
+				<a ng-click="addItem()"><span class="glyphicon glyphicon-plus"></span> Add Item</a>
+			</td>
+		</tr>
+	</tfoot>
+</table>

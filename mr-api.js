@@ -120,6 +120,8 @@ exports.create = function (config) {
 	var calculateNextDate = function (startdate, frequency, manualdays) {
 		var nextdate = null;
 
+		//console.log('calculateNextDate called startdate = '+startdate+' frequency = '+frequency);
+
 		if(frequency != 'Never') {
 			nextdate = new Date(startdate);
 
@@ -152,6 +154,8 @@ exports.create = function (config) {
 
 			nextdate = dateFormat(nextdate, "yyyy-mm-dd HH:MM:ss");
 		}
+
+		//console.log('calculateNextDate returning nextdate = '+nextdate);
 
 		return nextdate;
 	};
@@ -664,6 +668,29 @@ exports.create = function (config) {
 		});
 	};
 
+	self.createNextMeetings = function () {
+		var post = {},
+			now = new Date();
+
+		console.log('createNextMeetings called at '+now);
+
+		var query = db.query("SELECT userid, id FROM meetings WHERE nextid IS NULL AND frequency != 'Never' AND nextdate < NOW();", post, function (err, results) {
+			if(err) {
+				message = mysqlError(err);
+				console.log('MySQL error encountered on INSERT. err = '+JSON.stringify(err)+'\nmessage = '+message+'\npost = '+JSON.stringify(post)+'\n');
+			}
+			else {
+				for(var i in results) {
+					if(results[i].id) {
+						self.addNextMeeting({ meetingid:results[i].id, userid:results[i].userid }, function () { return; });
+					}
+				}
+			}
+		});
+
+		return true;
+	};
+
 	self.addNextMeeting = function (fields, output) {
 		var missings = checkRequired([ 'userid', 'meetingid' ], fields);
 		var message = '';
@@ -700,7 +727,8 @@ exports.create = function (config) {
 				post.nexdate = null;
 			}
 			else {
-				post.nextdate = calculateNextDate(meeting.startdate, meeting.frequency, meeting.manualdays);
+				//console.log('addNextMeeting calling calculateNextDate for meeting.name = '+meeting.name);
+				post.nextdate = calculateNextDate(meeting.nextdate, meeting.frequency, meeting.manualdays);
 
 				if(meeting.frequency === 'Manual') {
 					post.manualdays = meeting.manualdays;

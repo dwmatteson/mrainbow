@@ -111,18 +111,19 @@ wss.on('connection', function (ws) {
 						ws.token = data.token;
 					}
 
+					data.callback_id = message.callback_id;
 					ws.output(data);
 				});
 				return;
 			case 'reestablish':
 				ws.userid = message.userid;
 				ws.token = message.token;
-				ws.output({ 'status':'success', 'userid':ws.userid, 'token':ws.token });
+				ws.output({ 'status':'success', 'userid':ws.userid, 'token':ws.token, 'callback_id':message.callback_id });
 				return;
 		}
 
 		if(!ws.userid || !ws.token || !mr_api.checkToken(ws.token, ws.userid)) {
-			ws.output({ 'status': 'error', 'message': 'Unauthorized access attempt userid = '+ws.userid+' token = '+ws.token });
+			ws.output({ 'status': 'error', 'message': 'Unauthorized access attempt userid = '+ws.userid+' token = '+ws.token, 'callback_id':message.callback_id });
 			return;
 		}
 
@@ -144,6 +145,7 @@ wss.on('connection', function (ws) {
 						ws.meetingid = meetingdata.id;
 					}
 
+					data.callback_id = message.callback_id;
 					ws.output(data);
 				});
 				break;
@@ -162,6 +164,7 @@ wss.on('connection', function (ws) {
 				});
 				break;
 			case 'updateminutes':
+				/* not doing update on typing right now
 				mr_api.updateMinutes({
 					'userid'	: ws.userid,
 					'id'		: message.id,
@@ -169,15 +172,34 @@ wss.on('connection', function (ws) {
 					'content'	: message.content
 				}, function (data) {
 					if(data.status === 'success') {
+					*/
 						viewers.pushUpdate({
 							'userid'	: ws.userid,
 							'meetingid'	: ws.meetingid,
 							'message'	: message,
 							'socketid'	: ws.id
 						});
+				/*
 					}
 
 					ws.output(data);
+				});
+				*/
+				break;
+			case 'additem':
+				viewers.pushUpdate({
+					'userid' : ws.userid,
+					'meetingid' : ws.meetingid,
+					'message' : message,
+					'socketid' : ws.id
+				});
+				break;
+			case 'updateitem':
+				viewers.pushUpdate({
+					'userid' : ws.userid,
+					'meetingid' : ws.meetingid,
+					'message' : message,
+					'socketid' : ws.id
 				});
 				break;
 			default:

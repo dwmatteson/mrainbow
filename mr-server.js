@@ -17,6 +17,8 @@ if(mr_api.err) {
 
 var http = require('http');
 
+var lastCreate = 0;
+
 var server = http.createServer(function (req, res) {
 	res.writeHead(200, {'Content-type' : 'text/json'});
 
@@ -25,6 +27,8 @@ var server = http.createServer(function (req, res) {
 	var output = function (message) {
 		res.end(JSON.stringify(message));
 	}
+
+	var now = Math.round(Date.now() / 1000);
 
 	if(!query.action) {
 		res.end(JSON.stringify({
@@ -215,6 +219,11 @@ var server = http.createServer(function (req, res) {
 				'message' : 'Unrecognized action ('+query.action+')'
 			}));
 			break;
+	}
+
+	if((now - lastCreate) > 300) {
+		mr_api.createNextMeetings();
+		lastCreate = now;
 	}
 
 	return;
