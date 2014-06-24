@@ -47,7 +47,7 @@
 				</a>
 				<span ng-hide="item.minutes === undefined || item.minutes.length === 0" ng-repeat="minutes in item.minutes">
 					<strong>{{ minutes.username }}</strong> 
-					<a ng-show="item.lastid && item.id == minutes.itemid" ng-click="showHistory(item)"><span class="glyphicon glyphicon-gift"></span></a> 
+					<a ng-show="item.lastid && item.id == minutes.itemid" ng-click="showHistory(item)"><span class="glyphicon glyphicon-book"></span></a> 
 					<a ng-show="item.id != minutes.itemid" ng-click="dismissHistory($index, item.minutes)"><span class="glyphicon glyphicon-remove"></span></a>
 					<p class="minutes"><span editable-textarea="minutes.content" onbeforesave="updateMinutes(item, $index, $data)" e-rows="5" e-cols="75">{{ minutes.content }}</span></p>
 				</span>
@@ -75,7 +75,7 @@
 								</a>
 								<span ng-hide="subitem.minutes === undefined || subitem.minutes.length === 0" ng-repeat="subminutes in subitem.minutes">
 									<strong>{{ subminutes.username }}</strong>
-									<a ng-show="subitem.lastid && subitem.id == subminutes.itemid" ng-click="showHistory(subitem)"><span class="glyphicon glyphicon-gift"></span></a> 
+									<a ng-show="subitem.lastid && subitem.id == subminutes.itemid" ng-click="showHistory(subitem)"><span class="glyphicon glyphicon-book"></span></a> 
 									<a ng-show="subitem.id != subminutes.itemid" ng-click="dismissHistory($index, subitem.minutes)"><span class="glyphicon glyphicon-remove"></span></a>
 
 									<p class="minutes"><span editable-textarea="subminutes.content" onbeforesave="updateMinutes(subitem, $index, $data)" e-rows="5" e-cols="40">{{ subminutes.content }}</span></p>
