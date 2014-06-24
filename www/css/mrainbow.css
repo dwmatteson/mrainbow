@@ -1,0 +1,18 @@
+.minutes {
+	white-space: pre-line;
+}
+
+a {
+	cursor: pointer;
+}
+
+span.editable-click {
+	color: #515151;
+	border-bottom: none;
+}
+
+a.editable-empty {
+	font-style: normal;
+	color: #428bca;
+	border-bottom: none;
+}
