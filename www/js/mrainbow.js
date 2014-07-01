@@ -58,7 +58,7 @@ mrainbow.config(function ($routeProvider, $locationProvider) {
 		callbacks = {},
 		currentCallbackId = 0,
 		socketData = {},
-		ws = new WebSocket('ws://localhost:8181/');
+		ws = new WebSocket('ws://meetingrainbow.com:8181/');
 
 	ws.onopen = function () {
 		console.log("Socket has been opened!");
@@ -94,8 +94,8 @@ mrainbow.config(function ($routeProvider, $locationProvider) {
 			time: new Date(),
 			cb: defer
 		};
-		request.token = Service.token;
-		request.userid = Service.userid;
+		if(Service.token && !request.token) { request.token = Service.token; }
+		if(Service.userid && !request.userid) { request.userid = Service.userid; }
 		request.callback_id = callbackId;
 		console.log('Sending request', request);
 		ws.send(JSON.stringify(request));
@@ -559,17 +559,22 @@ mrainbow.config(function ($routeProvider, $locationProvider) {
 						minutes = $scope.meeting.supers[data.itemid].minutes;
 					}
 
-					minutes.forEach(function (ele, index) {
-						if(ele.id === data.id) {
+					if(minutes === undefined) {
+						console.log("Tried to update minutes that do not exist? itemid = "+data.itemid+" minutesid = "+data.id);
+					}
+					else {
+						minutes.forEach(function (ele, index) {
+							if(ele.id === data.id) {
 
-							if(element.superid) {
-								$scope.meeting.subs[element.superid][data.itemid].minutes[index].content = data.content;
+								if(element.superid) {
+									$scope.meeting.subs[element.superid][data.itemid].minutes[index].content = data.content;
+								}
+								else {
+									$scope.meeting.supers[data.itemid].minutes[index].content = data.content;
+								}
 							}
-							else {
-								$scope.meeting.supers[data.itemid].minutes[index].content = data.content;
-							}
-						}
-					});
+						});
+					}
 				}
 			});
 
@@ -600,9 +605,15 @@ mrainbow.config(function ($routeProvider, $locationProvider) {
 			$scope.meeting.items.forEach(function (element) {
 				if(element.id === data.itemid) {
 					if(element.superid) {
+						if($scope.meeting.subs[element.superid][data.itemid].minutes === undefined) {
+							$scope.meeting.subs[element.superid][data.itemid].minutes = [];
+						}
 						$scope.meeting.subs[element.superid][data.itemid].minutes.push(data.minutes);
 					}
 					else {
+						if($scope.meeting.supers[data.itemid].minutes === undefined) {
+							$scope.meeting.supers[data.itemid].minutes = [];
+						}
 						$scope.meeting.supers[data.itemid].minutes.push(data.minutes);
 					}
 				}
