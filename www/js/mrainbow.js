@@ -13,6 +13,19 @@ mrainbow.config(function ($routeProvider, $locationProvider) {
 .run(function (editableOptions) {
 	editableOptions.theme = 'bs3';
 })
+.filter('orderObjectBy', function() {
+	return function(items, field, reverse) {
+		var filtered = [];
+		angular.forEach(items, function(item) {
+			filtered.push(item);
+		});
+		filtered.sort(function (a, b) {
+			return (a[field] > b[field] ? 1 : -1);
+		});
+		if(reverse) filtered.reverse();
+		return filtered;
+	};
+})
 .factory('mrApi', function ($http, $cookieStore, mrSocket) {
 	var url = '/api/',
 		request = {},
@@ -305,9 +318,25 @@ mrainbow.config(function ($routeProvider, $locationProvider) {
 
 	$scope.inviteEmail = '';
 
+	$scope.collapseAttendees = true;
+	$scope.buttonClassOpen = 'glyphicon glyphicon-eye-open';
+	$scope.buttonClassClose = 'glyphicon glyphicon-eye-close';
+	$scope.attendeeButtonClass = $scope.buttonClassOpen;
+
 	if($scope.users === undefined) {
 		$scope.users = {};
 	}
+
+	$scope.toggleAttendees = function () {
+		$scope.collapseAttendees = !$scope.collapseAttendees;
+
+		if($scope.collapseAttendees) {
+			$scope.attendeeButtonClass = $scope.buttonClassOpen;
+		}
+		else {
+			$scope.attendeeButtonClass = $scope.buttonClassClose;
+		}
+	};
 
 	$scope.loadMinutes = function () {
 		var subs = {},
@@ -459,7 +488,18 @@ mrainbow.config(function ($routeProvider, $locationProvider) {
 
 	$scope.addItem = function (superId) {
 		var itemName = 'New item',
-			sortOrder = 0;
+			sortOrder = 0,
+			sortItems = $scope.meeting.supers;
+
+		if(superId) {
+			sortItems = $scope.meeting.subs[superId];
+		}
+	
+		for(var i in sortItems) {
+			if(sortItems[i].sortorder > sortOrder) {
+				sortOrder = sortItems[i].sortorder;
+			}
+		}
 
 		mrApi.action({ action: 'additem', meetingid: $scope.meeting.id, name: itemName, sortorder: sortOrder, superid: superId }).success(function (data, status) {
 			if(data.status === 'success') {

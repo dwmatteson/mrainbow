@@ -2,11 +2,12 @@
 
 <div class="row">
 	<div class="col-md-4">
-		<table class="table table-hover">
+		<a ng-click="toggleAttendees()"><span ng-class="attendeeButtonClass"></span> <span ng-show="collapseAttendees">Show Attendees</span><span ng-hide="collapseAttendees">Hide Attendees</span></a>
+		<table class="table table-hover" collapse="collapseAttendees">
 			<thead>
 				<tr>
-					<td><strong>Attendees</strong></td>
-					<td><strong>Status</strong></td>
+					<td class="col-md-2"><strong>Attendees</strong></td>
+					<td class="col-md-2"><strong>Status</strong></td>
 				</tr>
 			</thead>
 
@@ -38,7 +39,7 @@
 	</thead>
 
 	<tbody>
-		<tr ng-repeat="item in meeting.supers">
+		<tr ng-repeat="item in meeting.supers | orderObjectBy:'sortorder'">
 			<td class="col-md-2"><span editable-text="item.name" onbeforesave="updateItem(item, 'name', $data)">{{ item.name }}</span></td>
 			<td class="col-md-1"><span editable-select="item.ownername" e-ng-options="user.name as user.name for user in meeting.attendees" onshow="loadAttendees()" onbeforesave="updateItem(item, 'ownername', $data)">{{ item.ownername }}</span></td>
 			<td class="col-md-9">
@@ -66,7 +67,7 @@
 					</thead>
 
 					<tbody>
-						<tr ng-repeat="subitem in meeting.subs[item.id]">
+						<tr ng-repeat="subitem in meeting.subs[item.id] | orderObjectBy:'sortorder'">
 							<td class="col-md-3"><span editable-text="subitem.name" onbeforesave="updateItem(subitem, 'name', $data)">{{ subitem.name }}</span></td>
 							<td class="col-md-2"><span editable-select="subitem.ownername" e-ng-options="user.name as user.name for user in meeting.attendees" onshow="loadAttendees()" onbeforesave="updateItem(item, 'ownername', $data)">{{ subitem.ownername }}</span></td>
 							<td class="col-md-7">
