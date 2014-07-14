@@ -202,6 +202,14 @@ wss.on('connection', function (ws) {
 					'socketid' : ws.id
 				});
 				break;
+			case 'deleteitem':
+				viewers.pushUpdate({
+					'userid': ws.userid,
+					'meetingid': ws.meetingid,
+					'message':message,
+					'socketid' : ws.id
+				});
+				break;
 			default:
 				ws.output({ 'status': 'error', 'message': 'Unrecognized action ('+message.action+')' });
 				break;

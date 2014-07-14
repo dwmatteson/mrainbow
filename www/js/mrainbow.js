@@ -58,7 +58,35 @@ mrainbow.config(function ($routeProvider, $locationProvider) {
 		callbacks = {},
 		currentCallbackId = 0,
 		socketData = {},
-		ws = new WebSocket('ws://meetingrainbow.com:8181/');
+		ws = new WebSocket('ws://localhost:8181/');
+
+
+	function sendRequest (request) {
+		if(ws.readyState === 0) {
+			setTimeout(sendRequest, 1000, request);
+			return;
+		}
+
+		var defer = $q.defer();
+		var callbackId = getCallbackId();
+		callbacks[callbackId] = {
+			time: new Date(),
+			cb: defer
+		};
+		if(Service.token && !request.token) { request.token = Service.token; }
+		if(Service.userid && !request.userid) { request.userid = Service.userid; }
+		request.callback_id = callbackId;
+		console.log('Sending request', request);
+		ws.send(JSON.stringify(request));
+		return defer.promise;
+	}
+
+	Service.action = function (message) {
+		if(message.password) {
+			message.password = md5(message.password);
+		}
+		return sendRequest(message);
+	};
 
 	ws.onopen = function () {
 		console.log("Socket has been opened!");
@@ -81,26 +109,6 @@ mrainbow.config(function ($routeProvider, $locationProvider) {
 	ws.onmessage = function (message) {
 		listener(JSON.parse(message.data));
 	};
-
-	function sendRequest (request) {
-		if(ws.readyState === 0) {
-			setTimeout(sendRequest, 1000, request);
-			return;
-		}
-
-		var defer = $q.defer();
-		var callbackId = getCallbackId();
-		callbacks[callbackId] = {
-			time: new Date(),
-			cb: defer
-		};
-		if(Service.token && !request.token) { request.token = Service.token; }
-		if(Service.userid && !request.userid) { request.userid = Service.userid; }
-		request.callback_id = callbackId;
-		console.log('Sending request', request);
-		ws.send(JSON.stringify(request));
-		return defer.promise;
-	}
 
 	function listener (data) {
 		var messageObj = data;
@@ -138,13 +146,6 @@ mrainbow.config(function ($routeProvider, $locationProvider) {
 	Service.userid = $cookieStore.get('userid');
 	Service.token = $cookieStore.get('sockettoken');
 
-	Service.action = function (message) {
-		if(message.password) {
-			message.password = md5(message.password);
-		}
-		return sendRequest(message);
-	};
-
 
 	Service.viewMeeting = function (meetingid) {
 		socketData.meetingid = meetingid;
@@ -164,6 +165,11 @@ mrainbow.config(function ($routeProvider, $locationProvider) {
 
 	Service.updateItem = function (fields) {
 		fields.action = 'updateitem';
+		return sendRequest(fields);
+	};
+
+	Service.deleteItem = function (fields) {
+		fields.action = 'deleteitem';
 		return sendRequest(fields);
 	};
 
@@ -319,9 +325,6 @@ mrainbow.config(function ($routeProvider, $locationProvider) {
 	$scope.inviteEmail = '';
 
 	$scope.collapseAttendees = true;
-	$scope.buttonClassOpen = 'glyphicon glyphicon-eye-open';
-	$scope.buttonClassClose = 'glyphicon glyphicon-eye-close';
-	$scope.attendeeButtonClass = $scope.buttonClassOpen;
 
 	if($scope.users === undefined) {
 		$scope.users = {};
@@ -329,13 +332,6 @@ mrainbow.config(function ($routeProvider, $locationProvider) {
 
 	$scope.toggleAttendees = function () {
 		$scope.collapseAttendees = !$scope.collapseAttendees;
-
-		if($scope.collapseAttendees) {
-			$scope.attendeeButtonClass = $scope.buttonClassOpen;
-		}
-		else {
-			$scope.attendeeButtonClass = $scope.buttonClassClose;
-		}
 	};
 
 	$scope.loadMinutes = function () {
@@ -637,6 +633,43 @@ mrainbow.config(function ($routeProvider, $locationProvider) {
 	$scope.dismissHistory = function (minutesIndex, minutes) {
 		minutes.splice(minutesIndex, 1);
 	};
+
+	$scope.deleteItem = function (item, itemIndex) {
+		mrApi.action({ action:'deleteitem', id:item.id }).success(function (data, status) {
+			if(data.status === 'success') {
+				if(item.superid) {
+					delete $scope.meeting.subs[item.superid][item.id];
+					for(var i in $scope.meeting.items) {
+						if($scope.meeting.items[i].id === item.id) {
+							$scope.meeting.items.splice(i, 1);
+						}
+					}
+				}
+				else {
+					$scope.meeting.items.splice(itemIndex, 1);
+					delete $scope.meeting.supers[item.id];
+				}
+			}
+			mrSocket.deleteItem({ id: item.id });
+		});
+	};
+
+	mrSocket.registerCallback('deleteitem', function (data) {
+		if(data.id) {
+			if(item.superid) {
+				delete $scope.meeting.subs[item.superid][item.id];
+				for(var i in $scope.meeting.items) {
+					if($scope.meeting.items[i].id === item.id) {
+						$scope.meeting.items.splice(i, 1);
+					}
+				}
+			}
+			else {
+				$scope.meeting.items.splice(itemIndex, 1);
+				delete $scope.meeting.supers[item.id];
+			}
+		}
+	});
 
 	$scope.sendInvite = function (inviteEmail) {
 		var user = {};
