@@ -58,7 +58,7 @@ mrainbow.config(function ($routeProvider, $locationProvider) {
 		callbacks = {},
 		currentCallbackId = 0,
 		socketData = {},
-		ws = new WebSocket('ws://localhost:8181/');
+		ws = new WebSocket('ws://meetingrainbow.com:8181/');
 
 
 	function sendRequest (request) {
