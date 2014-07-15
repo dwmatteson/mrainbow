@@ -654,8 +654,8 @@ mrainbow.config(function ($routeProvider, $locationProvider) {
 		});
 	};
 
-	mrSocket.registerCallback('deleteitem', function (data) {
-		if(data.id) {
+	mrSocket.registerCallback('deleteitem', function (item) {
+		if(item.id) {
 			if(item.superid) {
 				delete $scope.meeting.subs[item.superid][item.id];
 				for(var i in $scope.meeting.items) {
