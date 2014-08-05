@@ -674,7 +674,7 @@ exports.create = function (config) {
 
 		console.log('createNextMeetings called at '+now);
 
-		var query = db.query("SELECT userid, id FROM meetings WHERE nextid IS NULL AND frequency != 'Never' AND startdate < NOW() + INTERVAL 12 HOUR;", post, function (err, results) {
+		var query = db.query("SELECT userid, id FROM meetings WHERE nextid IS NULL AND frequency != 'Never' AND startdate < NOW() + INTERVAL 24 HOUR;", post, function (err, results) {
 			if(err) {
 				message = mysqlError(err);
 				console.log('MySQL error encountered on INSERT. err = '+JSON.stringify(err)+'\nmessage = '+message+'\npost = '+JSON.stringify(post)+'\n');

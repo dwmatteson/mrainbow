@@ -99,7 +99,7 @@
 				</table>
 			</td>
 			<td>
-				<a ng-click="deleteItem(item, $index)"><span class="glyphicon glyphicon-trash"></span></a>
+				<a ng-hide="meeting.subs[item.id] != undefined || meetings.subs[item.id].length > 0" ng-click="deleteItem(item, $index)"><span class="glyphicon glyphicon-trash"></span></a>
 			</td>
 		</tr>
 	</tbody>
