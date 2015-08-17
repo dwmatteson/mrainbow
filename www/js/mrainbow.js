@@ -447,7 +447,9 @@ mrainbow.config(function ($routeProvider, $locationProvider) {
 		item[fieldname] = $data;
 		if(fieldname === 'ownername') {
 			for(user in $scope.users) {
+				console.log('Checking user name == '+user.name);
 				if(user.name === $data) {
+					console.log('Found match. Updating ownerid.');
 					item.ownerid = user.id;
 				}
 			}
@@ -476,7 +478,7 @@ mrainbow.config(function ($routeProvider, $locationProvider) {
 
 		$scope.meeting.items.forEach(function (item) {
 			if(item.id === data.id) {
-				item == data;
+				item = data;
 				return;
 			}
 		});
