@@ -388,8 +388,8 @@ mrainbow.config(function ($routeProvider, $locationProvider) {
 	};
 
 	$scope.loadAttendees = function () {
-		$scope.users = {};
 		if($scope.meeting.attendees == undefined) {
+			$scope.users = {};			
 			return mrApi.action({ action:'getattendees', meetingid:meetingid }).success(function (data, status) {
 				if(data.status === 'success') {
 					$scope.meeting.attendees = data.attendees;
