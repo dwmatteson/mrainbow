@@ -447,7 +447,7 @@ mrainbow.config(function ($routeProvider, $locationProvider) {
 		item[fieldname] = $data;
 		if(fieldname === 'ownername') {
 			for(user in $scope.users) {
-				console.log('Checking user name == '+user.name);
+				console.log('Checking user == '+JSON.stringify(user));
 				if(user.name === $data) {
 					console.log('Found match. Updating ownerid.');
 					item.ownerid = user.id;
