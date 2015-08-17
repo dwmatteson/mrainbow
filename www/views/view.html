@@ -70,7 +70,7 @@
 					<tbody>
 						<tr ng-repeat="subitem in meeting.subs[item.id] | orderObjectBy:'sortorder'">
 							<td class="col-md-3"><span editable-text="subitem.name" onbeforesave="updateItem(subitem, 'name', $data)">{{ subitem.name }}</span></td>
-							<td class="col-md-2"><span editable-select="subitem.ownername" e-ng-options="user.name as user.name for user in meeting.attendees" onshow="loadAttendees()" onbeforesave="updateItem(item, 'ownername', $data)">{{ subitem.ownername }}</span></td>
+							<td class="col-md-2"><span editable-select="subitem.ownername" e-ng-options="user.name as user.name for user in meeting.attendees" onshow="loadAttendees()" onbeforesave="updateItem(subitem, 'ownername', $data)">{{ subitem.ownername }}</span></td>
 							<td class="col-md-7">
 								<a ng-click="addMinutes(subitem)">
 									<span ng-show="subitem.minutes === undefined || subitem.minutes.length === 0"><span class="glyphicon glyphicon-th-list"></span> Add Minutes</span>
