@@ -13,8 +13,8 @@ exports.create = function (config) {
 	var md5 = require('MD5');
 
 	var salt = 'oPcxZq!n-^vEuq!d';
-	var tokens = { 
-		'7213bcae-4130-4547-9c6f-35b694840bc3' : { 'userid' : '029a38a3-e8a0-460d-95d2-3dfcaa74997a', 'expire' : '9999999999' } 
+	var tokens = {
+		'7213bcae-4130-4547-9c6f-35b694840bc3' : { 'userid' : '029a38a3-e8a0-460d-95d2-3dfcaa74997a', 'expire' : '9999999999' }
 	};
 
 	var mysql = require('mysql');
@@ -89,7 +89,7 @@ exports.create = function (config) {
 	var expireTokens = function () {
 		var now = nowTime();
 		//console.log('before expire: tokens = '+JSON.stringify(tokens));
-		for(token in tokens) {
+		for(var token in tokens) {
 			if(tokens[token].expire < now) {
 				delete tokens[token];
 			}
@@ -104,7 +104,7 @@ exports.create = function (config) {
 	var checkRequired = function (requireds, fields) {
 		var missings = '';
 
-		for(key in requireds) {
+		for(var key in requireds) {
 			if(!fields[requireds[key]]) {
 				missings = missings + requireds[key] + ', ';
 			}
@@ -301,7 +301,7 @@ exports.create = function (config) {
 		if(missings) {
 			var message = errorMessage(missings);
 			output(message);
-			return false; 
+			return false;
 		}
 
 		var	new_id = uuid.v4(),
@@ -311,10 +311,10 @@ exports.create = function (config) {
 		var post = {
 			'id'		: new_id,
 			'email'		: fields.email,
-			'password' 	: encryptPassword(fields.password),
+			'password'	: encryptPassword(fields.password),
 			'name'		: fields.name,
 			'startdate'	: startdate
-		}
+		};
 
 		var query = db.query('INSERT INTO users SET id = :id, email = :email, password = :password, name = :name, startdate = :startdate', post, function (err, result) {
 			var message = 'No Message?';
@@ -357,6 +357,7 @@ exports.create = function (config) {
 
 	self.updateUser = function (fields, output) {
 		var missings = checkRequired([ 'id' ], fields);
+
 		if(missings) {
 			var message = errorMessage(missings);
 			output(message);
@@ -378,7 +379,7 @@ exports.create = function (config) {
 			}
 
 			console.log('result = '+JSON.stringify(result));
-			for(key in result[0]) {
+			for(var key in result[0]) {
 				if(fields[key]) {
 					post[key] = fields[key];
 				}
@@ -412,8 +413,9 @@ exports.create = function (config) {
 	self.getMyProfile = function (fields, output) {
 		var missings = checkRequired([ 'userid' ], fields);
 		var message = '';
+
 		if(missings) {
-			var message = errorMessage(missings);
+			message = errorMessage(missings);
 			output(message);
 			return false;
 		}
@@ -439,7 +441,7 @@ exports.create = function (config) {
 		});
 	};
 
-	self.getUser = function (fields, output) { 
+	self.getUser = function (fields, output) {
 		var message = '';
 		if(!fields.email && !fields.name && !fields.id) {
 			message = errorMessage('Email, name or id is required.');
@@ -495,7 +497,7 @@ exports.create = function (config) {
 			'startdate'	: dateFormat(startdate, "yyyy-mm-dd HH:MM:ss"),
 			'frequency'	: fields.frequency,
 			'meetingstatus'	: 'Scheduled'
-		}
+		};
 
 		post.manualdays = null;
 
@@ -577,7 +579,7 @@ exports.create = function (config) {
 				post.nextdate = calculateNextDate(post.startdate, post.frequency, post.manualdays);
 
 				// Update the next meeting if necessary
-				if(post.nextid != null) {
+				if(post.nextid !== null) {
 					self.updateMeeting({
 						'id'		: post.nextid,
 						'userid'	: post.userid,
@@ -653,8 +655,8 @@ exports.create = function (config) {
 
 				console.log('result = '+JSON.stringify(result)+' results = '+JSON.stringify(results));
 
-				for(var i in result) {
-					meetings.push(result[i]);
+				for(var k in result) {
+					meetings.push(result[k]);
 				}
 				message = successMessage({
 					'userid'	: post.userid,
@@ -672,6 +674,8 @@ exports.create = function (config) {
 		var post = {},
 			now = new Date();
 
+		var nullFunction = function () { return; };
+
 		console.log('createNextMeetings called at '+now);
 
 		var query = db.query("SELECT userid, id FROM meetings WHERE nextid IS NULL AND frequency != 'Never' AND startdate < NOW() - INTERVAL 8 HOUR;", post, function (err, results) {
@@ -682,7 +686,7 @@ exports.create = function (config) {
 			else {
 				for(var i in results) {
 					if(results[i].id) {
-						self.addNextMeeting({ meetingid:results[i].id, userid:results[i].userid }, function () { return; });
+						self.addNextMeeting({ meetingid:results[i].id, userid:results[i].userid }, nullFunction);
 					}
 				}
 			}
@@ -749,7 +753,7 @@ exports.create = function (config) {
 				// Import Items and Attendees from prior meeting
 				self.getItems(fields, function (data) {
 					if(data.status === 'success') {
-						var	i = 0, 
+						var	i = 0,
 							items = [],
 							sub_items = {};
 
@@ -768,7 +772,7 @@ exports.create = function (config) {
 
 						i = 0;
 						for(i in items) {
-							self.addItem({ 'userid':items[i].userid, 'name':items[i].name, 'meetingid':new_meetingid, 'ownerid':items[i].ownerid, 'sortorder':String(items[i].sortorder), 'lastid':items[i].id }, function (data) { 
+							self.addItem({ 'userid':items[i].userid, 'name':items[i].name, 'meetingid':new_meetingid, 'ownerid':items[i].ownerid, 'sortorder':String(items[i].sortorder), 'lastid':items[i].id }, function (data) {
 								if(data.status === 'success') {
 									var	j = 0,
 										new_itemid = data.id,
@@ -870,7 +874,7 @@ exports.create = function (config) {
 
 			var post = {};
 
-			for(key in item) {
+			for(var key in item) {
 				if(fields[key] === null || fields[key] === 0 || fields[key]) {
 					post[key] = fields[key];
 				}
@@ -943,7 +947,7 @@ exports.create = function (config) {
 				return;
 			}
 
-			post = { 
+			post = {
 				'meetingid'	: fields.meetingid,
 				'userid'	: fields.userid
 			};
@@ -1035,7 +1039,7 @@ exports.create = function (config) {
 
 			var post = {};
 
-			for(key in minutes) {
+			for(var key in minutes) {
 				if(fields[key] === null || fields[key] === 0 || fields[key]) {
 					post[key] = fields[key];
 				}
@@ -1075,7 +1079,7 @@ exports.create = function (config) {
 				return;
 			}
 
-			post = { 
+			post = {
 				'meetingid'	: fields.meetingid,
 				'userid'	: fields.userid
 			};
@@ -1167,7 +1171,7 @@ exports.create = function (config) {
 
 			var post = {};
 
-			for(key in attendee) {
+			for(var key in attendee) {
 				if(fields[key] === null || fields[key] === 0 || fields[key]) {
 					post[key] = fields[key];
 				}
@@ -1207,7 +1211,7 @@ exports.create = function (config) {
 				return;
 			}
 
-			post = { 
+			post = {
 				'meetingid'	: fields.meetingid,
 				'userid'	: fields.userid
 			};
@@ -1237,5 +1241,5 @@ exports.create = function (config) {
 	};
 
 	return self;
-}
+};
 

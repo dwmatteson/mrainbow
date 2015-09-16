@@ -4,9 +4,9 @@
 var MRAPI = require('./mr-api.js');
 
 var mr_api = MRAPI.create({
-	'mysql_server' : 'localhost', 
-	'mysql_username' : 'mrainbow', 
-	'mysql_password' : 'pVal!mdx8Q-D#', 
+	'mysql_server' : 'localhost',
+	'mysql_username' : 'mrainbow',
+	'mysql_password' : 'pVal!mdx8Q-D#',
 	'mysql_database' : 'mrainbow'
 });
 
@@ -26,7 +26,7 @@ var server = http.createServer(function (req, res) {
 
 	var output = function (message) {
 		res.end(JSON.stringify(message));
-	}
+	};
 
 	var now = Math.round(Date.now() / 1000);
 
@@ -96,7 +96,7 @@ var server = http.createServer(function (req, res) {
 				'frequency'	: query.frequency,
 				'manualdays'	: query.manualdays,
 				'lastid'	: query.lastid,
-				'duration'	: query.duartion,
+				'duration'	: query.duration,
 				'public'	: query.public
 			}, output);
 			break;

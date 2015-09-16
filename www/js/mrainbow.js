@@ -5,7 +5,9 @@ mrainbow.config(function ($routeProvider, $locationProvider) {
 	$routeProvider
 	.when('/', { templateUrl: '/views/default.html', controller: 'defaultController' })
 	.when('/login', { templateUrl: '/views/login.html', controller: 'loginController' })
+	.when('/register', { templateUrl: '/views/register.html', controller: 'registerController' })
 	.when('/list', { templateUrl: '/views/list.html', controller: 'listController' })
+	.when('/new', { templateUrl: '/views/new.html', controller: 'newController' })
 	.when('/logout', { templateUrl: '/views/login.html', controller: 'logoutController' })
 	.when('/view/:meetingId', { templateUrl: '/views/view.html', controller: 'viewController' })
 	.otherwise({ redirectTo: '/' });
@@ -232,6 +234,51 @@ mrainbow.config(function ($routeProvider, $locationProvider) {
 		$location.url('/login');
 	}
 })
+.controller('registerController', function ($scope, $cookieStore, $location, mrApi, mrSocket, alertService) {
+	$cookieStore.put('userid', '');
+	$cookieStore.put('token', '');
+	$cookieStore.put('sockettoken', '');
+
+	$scope.registerForm = function () {
+		if($scope.registerEmail && $scope.registerPassword && $scope.registerName) {
+			mrApi.action({ action:'adduser', email:$scope.registerEmail, password:$scope.registerPassword, name:$scope.registerName }).success(function (data, status) {
+				console.log('SUCCESS: '+JSON.stringify(data));
+				if(data.status === 'success') {
+					mrApi.action({ action:'login', email:data.email, password:$scope.registerPassword }).success(function (data, status) {
+						console.log('SUCCESS: '+JSON.stringify(data));
+						if(data.status === 'success') {
+							$cookieStore.put('userid', data.id);
+							$cookieStore.put('token', data.token);
+
+							mrSocket.action({ action:'login', email:$scope.loginEmail, password:$scope.loginPassword });
+
+							alertService.add('success', 'Login successful.');
+							$location.url('/list');
+						}
+						else {
+							$scope.loginEmail = '';
+							$scope.loginPassword = '';
+							alertService.add('danger', 'Login failed. Email and/or password incorrect.');
+							$location.url('/login');
+						}
+					}).error(function (data, status) {
+						console.log('ERROR data: '+JSON.stringify(data)+' status: '+JSON.stringify(status));
+						alertService.add('danger', 'Error contacting API');
+					});
+				}
+				else {
+					alertService.add('danger', 'Registration failed. Email already in use.');
+				}
+			}).error(function (data, status) {
+				console.log('ERROR data: '+JSON.stringify(data)+' status: '+JSON.stringify(status));
+				alertService.add('danger', 'Error contacting API');
+			});
+		}
+		else {
+			console.log('registerForm called with no registerEmail, registerName or registerPassword.');
+		}
+	};
+})
 .controller('loginController', function ($scope, $cookieStore, $location, mrApi, mrSocket, alertService) {
 	$cookieStore.put('userid', '');
 	$cookieStore.put('token', '');
@@ -255,8 +302,8 @@ mrainbow.config(function ($routeProvider, $locationProvider) {
 					$scope.loginPassword = '';
 					alertService.add('danger', 'Login failed. Email and/or password incorrect.');
 				}
-			}).error(function (data, status) { 
-				console.log('ERROR data: '+JSON.stringify(data)+' status: '+JSON.stringify(status)); 
+			}).error(function (data, status) {
+				console.log('ERROR data: '+JSON.stringify(data)+' status: '+JSON.stringify(status));
 				alertService.add('danger', 'Error contacting API');
 			});
 		}
@@ -314,6 +361,33 @@ mrainbow.config(function ($routeProvider, $locationProvider) {
 		});
 	};
 })
+.controller('newController', function ($scope, $location, $routeParams, mrApi, mrSocket, alertService ) {
+	$scope.showManualdays = function () {
+		if($scope.newFrequency === 'Manual') { return true; }
+		return false;
+	};
+
+	$scope.newForm = function () {
+		if($scope.newName && $scope.newStartdate && $scope.newFrequency) {
+			console.log('newStartdate = '+JSON.stringify($scope.newStartdate));
+			mrApi.action({ action:'addmeeting', name:$scope.newName, startdate:$scope.newStartdate.toISOString().slice(0, 19).replace('T', ' '), frequency:$scope.newFrequency, manualdays:$scope.newManualdays, public:'1' }).success(function (data, status) {
+				console.log('addmeeting response = '+JSON.stringify(data));
+				if(data.status === 'success' && data.meetingid !== undefined) {
+					alertService.add('success', 'New meeting added.');
+					$location.url('/list');
+				}
+				else {
+					alertService.add('danger', 'Unable to add new meeting.');
+				}
+			}).error(function (data, status) {
+				alertService.add('danger', 'Error contacting API for addmeeting.');
+			});
+		}
+		else {
+			alertService.add('danger', 'New meeting called without Name, Start Date or Frequency.');
+		}
+	};
+})
 .controller('viewController', function ($scope, $location, $routeParams, mrApi, mrSocket, alertService) {
 	var meetingid = $routeParams.meetingId;
 
@@ -339,7 +413,7 @@ mrainbow.config(function ($routeProvider, $locationProvider) {
 			supers = {};
 
 		mrApi.action({ action:'getminutes', meetingid:meetingid }).success(function (data, status) {
-			if(data.status === 'success' && data.minutes != undefined) {
+			if(data.status === 'success' && data.minutes !== undefined) {
 				$scope.meeting.items.forEach(function (item, itemIndex) {
 					item.minutes = [];
 					if(item.superid) {
@@ -388,8 +462,9 @@ mrainbow.config(function ($routeProvider, $locationProvider) {
 	};
 
 	$scope.loadAttendees = function () {
-		if($scope.meeting.attendees == undefined) {
-			$scope.users = {};			
+		if($scope.meeting.attendees === undefined) {
+			$scope.users = {};
+			$scope.meeting.attendees = {};
 			return mrApi.action({ action:'getattendees', meetingid:meetingid }).success(function (data, status) {
 				if(data.status === 'success') {
 					$scope.meeting.attendees = data.attendees;
