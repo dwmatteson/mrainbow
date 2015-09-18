@@ -409,6 +409,34 @@ mrainbow.config(function ($routeProvider, $locationProvider) {
 		alertService.add('danger', 'Error contacting API for getmeetings.');
 	});
 
+	$scope.frequencies = [ 'Never', 'Daily', 'Weekly', 'Monthly', 'Semimonthly', 'Quarterly', 'Biannually', 'Yearly' ];
+
+	$scope.updateMeeting = function (meeting, fieldname, $data) {
+		var postFields  = {
+			action: 'updatemeeting',
+			id: meeting.id
+		};
+
+		if(fieldname === 'startdate') {
+			postFields[fieldname] = $data.toISOString().slice(0, 19).replace('T', ' ');
+		}
+		else {
+			postFields[fieldname] = $data;
+		}
+		mrApi.action(postFields).success(function (data, status) {
+			console.log('SUCCESS: data = '+JSON.stringify(data));
+			if(data.status === 'success') {
+				alertService.add('success', 'Meeting '+fieldname+' updated.');
+			}
+			else {
+				alertService.add('danger', 'Error updating meeting.');
+			}
+		}).error(function (data, status ) {
+			console.log('Error updating meeting data = '+JSON.stringify(data)+' status = '+JSON.stringify(status));
+			alertService.add('danger', 'Error contacting API for updatemeeting.');
+		});
+	};
+
 	$scope.swapMeeting = function (swapIndex, swapId) {
 		//console.log('swapMeeting called with index = '+swapIndex+' and swapId = '+swapId);
 		$scope.meetings.forEach(function (element, index, array) {

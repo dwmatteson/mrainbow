@@ -599,16 +599,18 @@ exports.create = function (config) {
 					message = successMessage({
 						'id'		: post.id,
 						'userid'	: post.userid,
-						'name'		: post.name,
-						'startdate'	: post.startdate,
-						'nextdate'	: post.nextdate,
-						'frequency'	: post.frequency,
-						'manualdays'	: post.manualdays,
-						'lastid'	: post.lastid,
-						'nextid'	: post.nextid,
-						'duration'	: post.duration,
-						'status'	: post.status,
-						'public'	: post.public
+						'meeting'	: {
+							'name'		: post.name,
+							'startdate'	: post.startdate,
+							'nextdate'	: post.nextdate,
+							'frequency'	: post.frequency,
+							'manualdays'	: post.manualdays,
+							'lastid'	: post.lastid,
+							'nextid'	: post.nextid,
+							'duration'	: post.duration,
+							'status'	: post.status,
+							'public'	: post.public
+						}
 					});
 				}
 

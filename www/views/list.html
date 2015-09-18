@@ -16,9 +16,9 @@
 		<tr ng-repeat="meeting in showMeetings">
 			<td><span ng-show="meeting.lastid" ng-click="swapMeeting($index, meeting.lastid)"><span class="glyphicon glyphicon-step-backward"></span> Prev</span></td>
 			<td><a href="#/view/{{ meeting.id }}">{{ meeting.name }}</a></td>
-			<td>{{ meeting.startdate | date }}</td>
+			<td><span editable-date="meeting.startdate" e-value="meeting.startdate" blur="ignore" onbeforesave="updateMeeting(meeting, 'startdate', $data)">{{ meeting.startdate | date }}</span></td>
 			<td><span ng-repeat="attendee in meeting.attendees">{{ attendee.name }}<br /></span></td>
-			<td>{{ meeting.frequency }}</td>
+			<td><span editable-select="meeting.frequency" blur="ignore" e-ng-options="frequency as frequency for frequency in frequencies">{{ meeting.frequency }}</span></td>
 			<td><span ng-show="meeting.nextid" ng-click="swapMeeting($index, meeting.nextid)">Next <span class="glyphicon glyphicon-step-forward"></span></span></td>
 		</tr>
 	</tbody>
