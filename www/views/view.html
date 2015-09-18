@@ -21,7 +21,7 @@
 			<tfoot>
 				<tr>
 					<td colspan="4" class="col-md-4">
-						<a ng-click="" editable-email="inviteEmail" onbeforesave="sendInvite($data)" e-placeholder="Enter email address"><span class="glyphicon glyphicon-envelope"></span> Send Invite</a>
+						<a ng-click="" editable-email="inviteEmail" onbeforesave="sendInvite($data)" e-placeholder="Enter email address" blur="ignore"><span class="glyphicon glyphicon-envelope"></span> Send Invite</a>
 					</td>
 				</tr>
 			</tfoot>
@@ -41,8 +41,8 @@
 
 	<tbody>
 		<tr ng-repeat="item in meeting.supers | orderObjectBy:'sortorder'">
-			<td class="col-md-2"><span editable-text="item.name" onbeforesave="updateItem(item, 'name', $data)">{{ item.name }}</span></td>
-			<td class="col-md-1"><span editable-select="item.ownername" e-ng-options="user.name as user.name for user in meeting.attendees" onshow="loadAttendees()" onbeforesave="updateItem(item, 'ownername', $data)">{{ item.ownername }}</span></td>
+			<td class="col-md-2"><span editable-text="item.name" blur="ignore" onbeforesave="updateItem(item, 'name', $data)">{{ item.name }}</span></td>
+			<td class="col-md-1"><span editable-select="item.ownername" blur="ignore" e-ng-options="user.name as user.name for user in meeting.attendees" onshow="loadAttendees()" onbeforesave="updateItem(item, 'ownername', $data)">{{ item.ownername }}</span></td>
 			<td class="col-md-9">
 				<a ng-click="addMinutes(item)">
 					<span ng-show="item.minutes === undefined || item.minutes.length === 0"><span class="glyphicon glyphicon-th-list"></span> Add Minutes</span>
@@ -51,7 +51,7 @@
 					<strong>{{ minutes.username }}</strong> 
 					<a ng-show="item.lastid && item.id == minutes.itemid" ng-click="showHistory(item)"><span class="glyphicon glyphicon-book"></span></a> 
 					<a ng-show="item.id != minutes.itemid" ng-click="dismissHistory($index, item.minutes)"><span class="glyphicon glyphicon-remove"></span></a>
-					<p class="minutes"><span editable-textarea="minutes.content" onbeforesave="updateMinutes(item, $index, $data)" e-rows="5" e-cols="75">{{ minutes.content }}</span></p>
+					<p class="minutes"><span editable-textarea="minutes.content" blur="ignore" onbeforesave="updateMinutes(item, $index, $data)" blur="ignore" e-rows="5" e-cols="75">{{ minutes.content }}</span></p>
 				</span>
 
 				<a ng-show="meeting.subs[item.id] === undefined || meeting.subs[item.id].length === 0" ng-click="addItem(item.id)">
@@ -69,8 +69,8 @@
 
 					<tbody>
 						<tr ng-repeat="subitem in meeting.subs[item.id] | orderObjectBy:'sortorder'">
-							<td class="col-md-3"><span editable-text="subitem.name" onbeforesave="updateItem(subitem, 'name', $data)">{{ subitem.name }}</span></td>
-							<td class="col-md-2"><span editable-select="subitem.ownername" e-ng-options="user.name as user.name for user in meeting.attendees" onshow="loadAttendees()" onbeforesave="updateItem(subitem, 'ownername', $data)">{{ subitem.ownername }}</span></td>
+							<td class="col-md-3"><span editable-text="subitem.name" blur="ignore" onbeforesave="updateItem(subitem, 'name', $data)" blur="ignore">{{ subitem.name }}</span></td>
+							<td class="col-md-2"><span editable-select="subitem.ownername" blur="ignore" e-ng-options="user.name as user.name for user in meeting.attendees" onshow="loadAttendees()" onbeforesave="updateItem(subitem, 'ownername', $data)">{{ subitem.ownername }}</span></td>
 							<td class="col-md-7">
 								<a ng-click="addMinutes(subitem)">
 									<span ng-show="subitem.minutes === undefined || subitem.minutes.length === 0"><span class="glyphicon glyphicon-th-list"></span> Add Minutes</span>
@@ -80,7 +80,7 @@
 									<a ng-show="subitem.lastid && subitem.id == subminutes.itemid" ng-click="showHistory(subitem)"><span class="glyphicon glyphicon-book"></span></a> 
 									<a ng-show="subitem.id != subminutes.itemid" ng-click="dismissHistory($index, subitem.minutes)"><span class="glyphicon glyphicon-remove"></span></a>
 
-									<p class="minutes"><span editable-textarea="subminutes.content" onbeforesave="updateMinutes(subitem, $index, $data)" e-rows="5" e-cols="40">{{ subminutes.content }}</span></p>
+									<p class="minutes"><span editable-textarea="subminutes.content" onbeforesave="updateMinutes(subitem, $index, $data)" blur="ignore" e-rows="5" e-cols="40">{{ subminutes.content }}</span></p>
 								</span>
 							</td>
 
