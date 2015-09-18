@@ -193,7 +193,7 @@ mrainbow.config(function ($routeProvider, $locationProvider) {
 
 	return Service;
 })
-.factory('alertService', function ($rootScope) {
+.factory('alertService', function ($rootScope, $timeout) {
 	var alertService = {};
 
 	$rootScope.alerts = [];
@@ -208,6 +208,9 @@ mrainbow.config(function ($routeProvider, $locationProvider) {
 	
 	alertService.add = function (type, msg) {
 		$rootScope.alerts.push({ type: type, msg: msg, close: function () { alertService.closeAlert(this); } });
+		$timeout(function() {
+			$rootScope.alerts.shift();
+		}, 5000);
 	};
 
 	return alertService;
