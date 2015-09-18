@@ -8,6 +8,7 @@ mrainbow.config(function ($routeProvider, $locationProvider) {
 	.when('/register', { templateUrl: '/views/register.html', controller: 'registerController' })
 	.when('/list', { templateUrl: '/views/list.html', controller: 'listController' })
 	.when('/new', { templateUrl: '/views/new.html', controller: 'newController' })
+	.when('/profile', { templateUrl: '/views/profile.html', controller: 'profileController' })
 	.when('/logout', { templateUrl: '/views/login.html', controller: 'logoutController' })
 	.when('/view/:meetingId', { templateUrl: '/views/view.html', controller: 'viewController' })
 	.otherwise({ redirectTo: '/' });
@@ -276,6 +277,59 @@ mrainbow.config(function ($routeProvider, $locationProvider) {
 		}
 		else {
 			console.log('registerForm called with no registerEmail, registerName or registerPassword.');
+		}
+	};
+})
+.controller('profileController', function ($scope, $cookieStore, $location, mrApi, mrSocket, alertService) {
+	$scope.profileName = '';
+	$scope.profileEmail = '';
+	$scope.profilePassword = '';
+	$scope.profilePasswordConfirm = '';
+
+	mrApi.action({ action:'getmyprofile' }).success(function (data, status) {
+		console.log('SUCCESS: '+JSON.stringify(data));
+		if(data.status === 'success') {
+			$scope.profileName = data.name;
+			$scope.profileEmail = data.email;
+		}
+		else {
+			alertService.add('danger', 'Unable to retrieve profile details for you.');
+		}
+	}).error(function (data, status) {
+		console.log('ERROR data: '+JSON.stringify(data)+' status: '+JSON.stringify(status));
+		alertService.add('danger', 'Error contacting API');
+	});
+
+	$scope.profileFormDisabled = function () {
+		if($scope.profilePassword === $scope.profilePasswordConfirm && $scope.profileName.length > 2 && $scope.profileEmail.length > 4) {
+			return false;
+		}
+		return true;
+	};
+
+	$scope.profileForm = function () {
+		if($scope.profileName && $scope.profileEmail) {
+			var postFields = {
+				action: 'updateuser',
+				name: $scope.profileName,
+				email: $scope.profileEmail
+			};
+
+			if($scope.profilePassword) {
+				postFields['password'] = $scope.profilePassword;
+			}
+
+			mrApi.action(postFields).success(function (data, status) {
+				if(data.status === 'success') {
+					alertService.add('success', 'Profile updated.');
+				}
+				else {
+					alertService.add('danger', 'Error updating profile.');
+				}
+			}).error(function (data, status) {
+				console.log('ERROR data: '+JSON.stringify(data)+' status: '+JSON.stringify(status));
+				alertService.add('danger', 'Error contacting API');
+			});
 		}
 	};
 })
