@@ -498,6 +498,7 @@ mrainbow.config(function ($routeProvider, $locationProvider) {
 			supers = {};
 
 		mrApi.action({ action:'getminutes', meetingid:meetingid }).success(function (data, status) {
+			console.log('loadMinutes: received data: '+JSON.stringify(data));
 			if(data.status === 'success' && data.minutes !== undefined) {
 				$scope.meeting.items.forEach(function (item, itemIndex) {
 					item.minutes = [];
