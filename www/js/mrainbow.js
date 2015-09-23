@@ -534,7 +534,7 @@ mrainbow.config(function ($routeProvider, $locationProvider) {
 									subs[item.superid][item.id].minutes = [ minutes ];
 								}
 								else {
-									supers[item.id].minutes.push = [ minutes ];
+									supers[item.id].minutes = [ minutes ];
 								}
 							}
 						}
