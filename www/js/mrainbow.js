@@ -573,7 +573,6 @@ mrainbow.config(function ($routeProvider, $locationProvider) {
 
 			mrSocket.viewMeeting(data.meetings[0].id);
 
-			var loadMinutes = 
 			mrApi.action({ action:'getitems', meetingid:meetingid }).success(function (data, status) {
 				if(data.status === 'success') {
 					$scope.meeting.items = data.items;
@@ -606,7 +605,7 @@ mrainbow.config(function ($routeProvider, $locationProvider) {
 	$scope.updateItem = function (item, fieldname, $data) {
 		item[fieldname] = $data;
 		if(fieldname === 'ownername') {
-			for(userid in $scope.users) {
+			for(var userid in $scope.users) {
 				console.log('Checking user == '+JSON.stringify($scope.users[userid]));
 				if($scope.users[userid].name === $data) {
 					console.log('Found match. Updating ownerid.');
