@@ -6,7 +6,7 @@ var MRAPI = require('./mr-api.js');
 var mr_api = MRAPI.create({
 	'mysql_server' : 'localhost',
 	'mysql_username' : 'mrainbow',
-	'mysql_password' : 'pVal!mdx8Q-D#',
+	'mysql_password' : 'REPLACE ME WITH A REAL PASSWORD',
 	'mysql_database' : 'mrainbow'
 });
 
