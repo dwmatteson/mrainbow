@@ -10,7 +10,8 @@ exports.create = function (config) {
 	var dateFormat = require('dateformat');
 	var extend = require('extend');
 	var uuid = require('node-uuid');
-	var md5 = require('MD5');
+	var scrypt = require('scrypt');
+	var scryptParams = scrypt.paramsSync(0.1); // 100ms max time
 
 	var salt = 'oPcxZq!n-^vEuq!d';
 	var tokens = {
@@ -98,8 +99,12 @@ exports.create = function (config) {
 	};
 
 	var encryptPassword = function (password) {
-		return md5(password+salt);
+		return scrypt.kdfSync(password, scryptParams).toString('hex');
 	};
+
+	var checkPassword = function (password, kdf) {
+		return scrypt.verifyKdfSync(kdf, password);
+	}
 
 	var checkRequired = function (requireds, fields) {
 		var missings = '';
@@ -263,8 +268,6 @@ exports.create = function (config) {
 			return false;
 		}
 
-		fields.password = encryptPassword(fields.password);
-
 		var post = {
 			'email' : fields.email
 		};
@@ -277,7 +280,7 @@ exports.create = function (config) {
 				console.log('MySQL error encountered. Code = '+err.code+'\nmessage = '+message+'\npost = '+JSON.stringify(post)+'\n');
 			}
 			else {
-				if(result[0] && result[0].password === fields.password) {
+				if(result[0] && checkPassword(fields.password, result[0].password)) {
 					var token = createToken(result[0].id);
 
 					message = successMessage({
