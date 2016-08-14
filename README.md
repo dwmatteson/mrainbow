@@ -56,6 +56,7 @@ ever happen, since I don't use this software any more.
 * Configuration should be in a single configuration file.
 * API should probably be RESTful instead of old-style pass an action argument.
 * New SPA for RESTful API and either Angular 2.x or something else entirely.
+* Write unit tests.
 
 ## Contact
 
